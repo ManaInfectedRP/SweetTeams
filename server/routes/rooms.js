@@ -68,7 +68,16 @@ router.get('/:linkCode', authenticateToken, async (req, res) => {
         // Add user as participant if not already
         await addRoomParticipant(room.id, req.user.id);
 
-        res.json({ room });
+        // Convert snake_case to camelCase for frontend
+        const formattedRoom = {
+            id: room.id,
+            name: room.name,
+            linkCode: room.link_code,
+            creatorId: room.creator_id,
+            created_at: room.created_at
+        };
+
+        res.json({ room: formattedRoom });
     } catch (error) {
         console.error('Get room error:', error);
         res.status(500).json({ error: 'Server error fetching room' });
@@ -79,7 +88,15 @@ router.get('/:linkCode', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const rooms = await findRoomsByCreator(req.user.id);
-        res.json({ rooms });
+        // Convert snake_case to camelCase for frontend
+        const formattedRooms = rooms.map(room => ({
+            id: room.id,
+            name: room.name,
+            linkCode: room.link_code,
+            creatorId: room.creator_id,
+            created_at: room.created_at
+        }));
+        res.json({ rooms: formattedRooms });
     } catch (error) {
         console.error('Get rooms error:', error);
         res.status(500).json({ error: 'Server error fetching rooms' });
