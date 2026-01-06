@@ -218,9 +218,12 @@ function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showM
 
             {showMenu && (
                 <div className="admin-menu">
-                    <button onClick={() => onAdminAction('mute-mic', socketId)}>
-                        {mediaState.audio ? 'Stäng av Mikrofon' : 'Slå på Mikrofon'}
-                    </button>
+                    {/* Admin kan bara stänga av mikrofon, inte slå på (integritetsskydd) */}
+                    {mediaState.audio && (
+                        <button onClick={() => onAdminAction('mute-mic', socketId)}>
+                            Stäng av Mikrofon
+                        </button>
+                    )}
                     <button onClick={() => onAdminAction('toggle-camera', socketId)}>
                         {mediaState.video ? 'Stäng av Kamera' : 'Slå på Kamera'}
                     </button>
