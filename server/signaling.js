@@ -119,13 +119,26 @@ export function setupSignaling(httpServer) {
         // Chat message
         socket.on('chat-message', (message) => {
             if (socket.roomId) {
-                io.to(socket.roomId).emit('chat-message', {
+                const payload = {
+                    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                     message,
                     username: socket.username,
                     userId: socket.userId,
                     timestamp: new Date().toISOString()
-                });
+                };
+                io.to(socket.roomId).emit('chat-message', payload);
             }
+        });
+
+        // Delete chat message (admin or moderator only)
+        socket.on('delete-message', async ({ id }) => {
+            if (!socket.roomId) return;
+            const room = await findRoomByLinkCode(socket.roomId);
+            const isAdmin = socket.userId === room?.creator_id;
+            const moderators = roomModerators.get(socket.roomId) || new Set();
+            const isModerator = moderators.has(socket.userId);
+            if (!isAdmin && !isModerator) return;
+            io.to(socket.roomId).emit('message-deleted', { id, deletedBy: socket.userId });
         });
 
         // Screen sharing started
@@ -177,6 +190,38 @@ export function setupSignaling(httpServer) {
             }
         });
 
+        // Promote/demote moderator (admin only)
+        socket.on('set-moderator', async ({ targetUserId, isModerator }) => {
+            if (!socket.roomId) return;
+            const room = await findRoomByLinkCode(socket.roomId);
+            const isAdmin = socket.userId === room?.creator_id;
+            if (!isAdmin) return; // Only admin can set moderators
+
+            if (!roomModerators.has(socket.roomId)) {
+                roomModerators.set(socket.roomId, new Set());
+            }
+            const moderators = roomModerators.get(socket.roomId);
+            if (isModerator) {
+                moderators.add(targetUserId);
+            } else {
+                moderators.delete(targetUserId);
+            }
+
+            // Update role for the target user and notify room
+            const roomParticipants = rooms.get(socket.roomId);
+            if (roomParticipants) {
+                roomParticipants.forEach(p => {
+                    if (p.userId === targetUserId) {
+                        p.role = isModerator ? 'moderator' : 'participant';
+                        io.to(socket.roomId).emit('user-role-updated', {
+                            socketId: p.socketId,
+                            role: p.role
+                        });
+                    }
+                });
+            }
+        });
+
         // Handle media state changes (mute/unmute updates)
         socket.on('media-state-change', ({ type, enabled }) => {
             // Broadcast to room so everyone updates their icons
@@ -205,6 +250,7 @@ export function setupSignaling(httpServer) {
                 // Clean up empty rooms
                 if (roomParticipants.size === 0) {
                     rooms.delete(socket.roomId);
+                    roomModerators.delete(socket.roomId);
                     // Also delete from database
                     deleteRoom(socket.roomId).then(() => {
                         console.log(`Room ${socket.roomId} deleted from database (empty)`);
@@ -218,40 +264,3 @@ export function setupSignaling(httpServer) {
 
     return io;
 }
-
-        // Promote/demote moderator (admin only)
-        socket.on('set-moderator', async ({ targetUserId, isModerator }) => {
-            if (!socket.roomId) return;
-            
-            const room = await findRoomByLinkCode(socket.roomId);
-            const isAdmin = socket.userId === room?.creator_id;
-            
-            if (!isAdmin) return; // Only admin can set moderators
-            
-            if (!roomModerators.has(socket.roomId)) {
-                roomModerators.set(socket.roomId, new Set());
-            }
-            
-            const moderators = roomModerators.get(socket.roomId);
-            
-            if (isModerator) {
-                moderators.add(targetUserId);
-            } else {
-                moderators.delete(targetUserId);
-            }
-            
-            // Update role for the target user
-            const roomParticipants = rooms.get(socket.roomId);
-            if (roomParticipants) {
-                roomParticipants.forEach(p => {
-                    if (p.userId === targetUserId) {
-                        p.role = isModerator ? 'moderator' : 'participant';
-                        // Notify everyone about role change
-                        io.to(socket.roomId).emit('user-role-updated', {
-                            socketId: p.socketId,
-                            role: p.role
-                        });
-                    }
-                });
-            }
-        });

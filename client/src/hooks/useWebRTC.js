@@ -197,6 +197,11 @@ export function useWebRTC(roomId, token, username) {
                 setMessages(prev => [...prev, data]);
             });
 
+            socket.on('message-deleted', ({ id, deletedBy }) => {
+                if (!mounted) return;
+                setMessages(prev => prev.map(m => m.id === id ? { ...m, deleted: true, deletedBy } : m));
+            });
+
             // --- STATE UPDATES ---
             socket.on('user-media-state-changed', ({ socketId, type, enabled }) => {
                 if (!mounted) return;
@@ -537,18 +542,24 @@ export function useWebRTC(roomId, token, username) {
     const sendAdminCommand = (targetSocketId, action) => {
         if (socketRef.current) {
             socketRef.current.emit('admin-action', { targetSocketId, action });
+        }
+    };
 
-            const setModerator = (targetUserId, isModerator) => {
-                if (socketRef.current) {
-                    socketRef.current.emit('set-moderator', { targetUserId, isModerator });
-                }
-            };
+    const setModerator = (targetUserId, isModerator) => {
+        if (socketRef.current) {
+            socketRef.current.emit('set-moderator', { targetUserId, isModerator });
         }
     };
 
     // Helper to get state
     const getParticipantState = (socketId) => {
         return participantStates.get(socketId) || { audio: true, video: true };
+    };
+
+    const deleteMessage = (id) => {
+        if (socketRef.current) {
+            socketRef.current.emit('delete-message', { id });
+        }
     };
 
     return {
@@ -574,6 +585,7 @@ export function useWebRTC(roomId, token, username) {
         selectSpeaker,
         sendMessage,
         sendAdminCommand,
+        deleteMessage,
         setModerator
     };
 }

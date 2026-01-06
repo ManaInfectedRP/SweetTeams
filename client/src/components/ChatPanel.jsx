@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import './ChatPanel.css';
 
-export default function ChatPanel({ messages, onSendMessage, username, participants = [] }) {
+export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, username, participants = [], canModerate = false }) {
     const [message, setMessage] = useState('');
     const [showParticipants, setShowParticipants] = useState(false);
     const messagesEndRef = useRef(null);
@@ -92,8 +92,19 @@ export default function ChatPanel({ messages, onSendMessage, username, participa
                                         minute: '2-digit'
                                     })}
                                 </span>
+                                {canModerate && !msg.deleted && (
+                                    <button
+                                        className="chat-message-delete"
+                                        title="Ta bort meddelande"
+                                        onClick={() => onDeleteMessage?.(msg.id)}
+                                    >
+                                        🗑️
+                                    </button>
+                                )}
                             </div>
-                            <div className="chat-message-content">{msg.message}</div>
+                            <div className={`chat-message-content ${msg.deleted ? 'deleted' : ''}`}>
+                                {msg.deleted ? 'Meddelandet borttaget av moderator' : msg.message}
+                            </div>
                         </div>
                     ))
                 )}

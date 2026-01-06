@@ -31,6 +31,7 @@ export default function Room() {
         sendMessage,
         sendAdminCommand,
             setModerator,
+        deleteMessage,
         participants,
         participantStates,
         // Device selection
@@ -152,8 +153,10 @@ export default function Room() {
                         <ChatPanel
                             messages={messages}
                             onSendMessage={sendMessage}
+                            onDeleteMessage={deleteMessage}
                             username={user?.username}
                             participants={participants}
+                            canModerate={user?.id === room?.creatorId || participants.find(p => p.userId === user?.id)?.role === 'moderator'}
                         />
                     </div>
                 )}
