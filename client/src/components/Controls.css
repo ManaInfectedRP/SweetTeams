@@ -5,6 +5,9 @@
     padding: var(--space-lg);
     background: var(--color-bg-secondary);
     border-top: 1px solid var(--color-border);
+    position: relative;
+    /* Hint browsers to render native controls in dark mode */
+    color-scheme: dark;
 }
 
 .controls-group {
@@ -86,6 +89,65 @@
     box-shadow: var(--shadow-lg);
 }
 
+.device-settings-panel {
+    position: absolute;
+    right: var(--space-lg);
+    bottom: calc(100% + var(--space-md));
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-xl);
+    display: grid;
+    gap: var(--space-md);
+    min-width: 280px;
+    z-index: 50;
+    /* Ensure child form controls prefer dark styling */
+    color-scheme: dark;
+}
+
+@media (max-width: 768px) {
+    .device-settings-panel {
+        position: static;
+        right: auto;
+        bottom: auto;
+        width: 100%;
+        margin-top: var(--space-md);
+    }
+}
+
+.device-setting label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-xs);
+}
+
+.device-setting select {
+    width: 100%;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+/* Force dropdown list options to dark theme in browsers that allow styling */
+.device-setting select option {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+.device-setting select option:checked,
+.device-setting select option:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+}
+
+/* Edge/IE arrow tweak (no-op in modern browsers) */
+.device-setting select::-ms-expand {
+    display: none;
+}
 @media (max-width: 768px) {
     .controls-container {
         padding: var(--space-md);

@@ -30,7 +30,15 @@ export default function Room() {
         sendMessage,
         sendAdminCommand,
         participants,
-        participantStates
+        participantStates,
+        // Device selection
+        devices,
+        selectedCameraId,
+        selectedMicrophoneId,
+        selectedSpeakerId,
+        selectCamera,
+        selectMicrophone,
+        selectSpeaker
     } = useWebRTC(linkCode, token, user?.username);
 
     useEffect(() => {
@@ -115,6 +123,7 @@ export default function Room() {
                         onAdminAction={sendAdminCommand}
                         participants={participants}
                         participantStates={participantStates}
+                        selectedSpeakerId={selectedSpeakerId}
                     />
                     <Controls
                         isCameraOn={isCameraOn}
@@ -124,6 +133,13 @@ export default function Room() {
                         onToggleMic={toggleMic}
                         onToggleScreenShare={toggleScreenShare}
                         onSwitchCamera={switchCamera}
+                        devices={devices}
+                        selectedCameraId={selectedCameraId}
+                        selectedMicrophoneId={selectedMicrophoneId}
+                        selectedSpeakerId={selectedSpeakerId}
+                        onSelectCamera={selectCamera}
+                        onSelectMicrophone={selectMicrophone}
+                        onSelectSpeaker={selectSpeaker}
                         onLeave={handleLeave}
                     />
                 </div>

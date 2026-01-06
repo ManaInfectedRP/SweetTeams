@@ -12,10 +12,13 @@ export default function VideoGrid({
     isHost,
     onAdminAction,
     participants = [], // Array of { socketId, userId, username }
-    participantStates = new Map() // Map of socketId -> { audio, video }
+    participantStates = new Map(), // Map of socketId -> { audio, video }
+    selectedSpeakerId
 }) {
     const localVideoRef = useRef(null);
     const [activeMenu, setActiveMenu] = useState(null); // socketId of active menu
+    const [currentPage, setCurrentPage] = useState(0);
+    const pageSize = 6;
 
     useEffect(() => {
         if (localVideoRef.current) {
@@ -43,7 +46,26 @@ export default function VideoGrid({
         return 'grid-many';
     };
 
-    const totalParticipants = 1 + remoteStreams.size;
+    // Build a flat list of all tiles (include local as first)
+    const tiles = [
+        { kind: 'local' },
+        ...Array.from(remoteStreams, ([socketId, remote]) => ({ kind: 'remote', socketId, remote }))
+    ];
+
+    const totalTiles = tiles.length;
+    const totalPages = Math.max(1, Math.ceil(totalTiles / pageSize));
+
+    // Clamp current page if participant count changes
+    useEffect(() => {
+        if (currentPage > totalPages - 1) {
+            setCurrentPage(totalPages - 1);
+        }
+    }, [totalPages, currentPage]);
+
+    const start = currentPage * pageSize;
+    const end = start + pageSize;
+    const visibleTiles = tiles.slice(start, end);
+    const visibleCount = visibleTiles.length;
 
     const getParticipantInfo = (socketId) => {
         return participants.find(p => p.socketId === socketId);
@@ -74,49 +96,95 @@ export default function VideoGrid({
 
     const isLocalVideoVisible = isCameraOn || !!screenStream;
 
+    const handlePrev = () => setCurrentPage(p => Math.max(0, p - 1));
+    const handleNext = () => setCurrentPage(p => Math.min(totalPages - 1, p + 1));
+
+    // Swipe navigation for mobile
+    const touchStartX = useRef(null);
+    const touchStartY = useRef(null);
+    const onTouchStart = (e) => {
+        const t = e.changedTouches[0];
+        touchStartX.current = t.clientX;
+        touchStartY.current = t.clientY;
+    };
+    const onTouchEnd = (e) => {
+        const t = e.changedTouches[0];
+        const dx = t.clientX - (touchStartX.current ?? t.clientX);
+        const dy = t.clientY - (touchStartY.current ?? t.clientY);
+        // Horizontal swipe with minimal vertical movement
+        if (Math.abs(dx) > 50 && Math.abs(dy) < 40) {
+            if (dx < 0) handleNext();
+            else handlePrev();
+        }
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     return (
-        <div className={`video-grid ${getGridClass(totalParticipants)}`}>
-            {/* Local User */}
-            <div className="video-container local-video">
-                <video
-                    ref={localVideoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={isLocalVideoVisible ? '' : 'hidden'}
-                />
-                {!isLocalVideoVisible && (
-                    <div className="video-placeholder">
-                        <span>{username?.[0]?.toUpperCase()}</span>
-                    </div>
-                )}
-                <div className="user-label">
-                    {username} (Du) {currentUserId === creatorId && '⭐'}
-                </div>
+        <div className="video-grid-wrapper" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+            <div className={`video-grid ${getGridClass(visibleCount)}`}>
+                {visibleTiles.map((tile, idx) => {
+                    if (tile.kind === 'local') {
+                        return (
+                            <div className="video-container local-video" key="local">
+                                <video
+                                    ref={localVideoRef}
+                                    autoPlay
+                                    muted
+                                    playsInline
+                                    className={isLocalVideoVisible ? '' : 'hidden'}
+                                />
+                                {!isLocalVideoVisible && (
+                                    <div className="video-placeholder">
+                                        <span>{username?.[0]?.toUpperCase()}</span>
+                                    </div>
+                                )}
+                                <div className="user-label">
+                                    {username} (Du) {currentUserId === creatorId && '⭐'}
+                                </div>
+                            </div>
+                        );
+                    }
+                    const { socketId, remote } = tile;
+                    const state = getRemoteState(socketId);
+                    return (
+                        <RemoteVideo
+                            key={socketId}
+                            remote={remote}
+                            socketId={socketId}
+                            isHost={isHost}
+                            isRemoteHost={isRemoteHost(socketId)}
+                            mediaState={state}
+                            showMenu={activeMenu === socketId}
+                            onMenuClick={(e) => handleMenuClick(e, socketId)}
+                            onAdminAction={handleAdminAction}
+                            selectedSpeakerId={selectedSpeakerId}
+                        />
+                    );
+                })}
             </div>
 
-            {/* Remote Users */}
-            {Array.from(remoteStreams).map(([socketId, remote]) => {
-                const state = getRemoteState(socketId);
-                return (
-                    <RemoteVideo
-                        key={socketId}
-                        remote={remote}
-                        socketId={socketId}
-                        isHost={isHost}
-                        isRemoteHost={isRemoteHost(socketId)}
-                        mediaState={state}
-                        showMenu={activeMenu === socketId}
-                        onMenuClick={(e) => handleMenuClick(e, socketId)}
-                        onAdminAction={handleAdminAction}
-                    />
-                );
-            })}
+            {totalPages > 1 && (
+                <div className="video-grid-pager">
+                    <button className="pager-btn" onClick={handlePrev} disabled={currentPage === 0} aria-label="Föregående sida">‹</button>
+                    <div className="pager-dots">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                            <button
+                                key={i}
+                                className={`pager-dot ${i === currentPage ? 'active' : ''}`}
+                                onClick={() => setCurrentPage(i)}
+                                aria-label={`Gå till sida ${i + 1}`}
+                            />
+                        ))}
+                    </div>
+                    <button className="pager-btn" onClick={handleNext} disabled={currentPage === totalPages - 1} aria-label="Nästa sida">›</button>
+                </div>
+            )}
         </div>
     );
 }
 
-function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction }) {
+function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, selectedSpeakerId }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -124,6 +192,18 @@ function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showM
             videoRef.current.srcObject = remote.stream;
         }
     }, [remote.stream]);
+
+    // Apply selected speaker/output device if supported
+    useEffect(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        const canSetSink = typeof el.setSinkId === 'function';
+        if (canSetSink && selectedSpeakerId) {
+            el.setSinkId(selectedSpeakerId).catch(err => {
+                console.warn('setSinkId failed:', err);
+            });
+        }
+    }, [selectedSpeakerId]);
 
     const isVideoEnabled = mediaState.video;
 

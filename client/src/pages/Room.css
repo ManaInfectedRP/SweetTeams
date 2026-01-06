@@ -55,6 +55,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Allow children with overflow to scroll properly */
+    min-height: 0;
 }
 
 .room-chat-area {

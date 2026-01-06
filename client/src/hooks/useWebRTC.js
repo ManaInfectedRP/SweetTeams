@@ -11,6 +11,11 @@ export function useWebRTC(roomId, token, username) {
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [facingMode, setFacingMode] = useState('user'); // 'user' = front, 'environment' = back
     const [currentDeviceId, setCurrentDeviceId] = useState(null);
+    // Device selection state
+    const [devices, setDevices] = useState({ audioinput: [], videoinput: [], audiooutput: [] });
+    const [selectedCameraId, setSelectedCameraId] = useState(null);
+    const [selectedMicrophoneId, setSelectedMicrophoneId] = useState(null);
+    const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [messages, setMessages] = useState([]);
 
@@ -89,9 +94,17 @@ export function useWebRTC(roomId, token, username) {
                     const settings = videoTrack.getSettings();
                     if (settings.deviceId) {
                         setCurrentDeviceId(settings.deviceId);
+                        setSelectedCameraId(settings.deviceId);
                     }
                     if (settings.facingMode) {
                         setFacingMode(settings.facingMode);
+                    }
+                }
+                const audioTrack = stream.getAudioTracks()[0];
+                if (audioTrack) {
+                    const aSettings = audioTrack.getSettings();
+                    if (aSettings.deviceId) {
+                        setSelectedMicrophoneId(aSettings.deviceId);
                     }
                 }
             }
@@ -220,6 +233,27 @@ export function useWebRTC(roomId, token, username) {
 
         init();
 
+        // Enumerate devices after permissions are granted
+        const refreshDevices = async () => {
+            try {
+                const list = await navigator.mediaDevices.enumerateDevices();
+                const grouped = { audioinput: [], videoinput: [], audiooutput: [] };
+                list.forEach(d => {
+                    if (grouped[d.kind]) grouped[d.kind].push(d);
+                });
+                setDevices(grouped);
+                if (!selectedSpeakerId && grouped.audiooutput.length > 0) {
+                    setSelectedSpeakerId(grouped.audiooutput[0].deviceId);
+                }
+            } catch (e) {
+                console.warn('enumerateDevices failed:', e);
+            }
+        };
+        refreshDevices();
+        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+            navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
+        }
+
         return () => {
             mounted = false;
             if (localStreamRef.current) {
@@ -231,6 +265,9 @@ export function useWebRTC(roomId, token, username) {
             peersRef.current.forEach(peer => peer.destroy());
             if (socketRef.current) {
                 socketRef.current.disconnect();
+            }
+            if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+                navigator.mediaDevices.removeEventListener('devicechange', refreshDevices);
             }
         };
     }, [roomId, token]);
@@ -380,6 +417,70 @@ export function useWebRTC(roomId, token, username) {
         }
     };
 
+    // Select camera by deviceId
+    const selectCamera = async (deviceId) => {
+        if (!deviceId || !localStreamRef.current) return;
+        try {
+            const currentVideoTrack = localStreamRef.current.getVideoTracks()[0];
+            const currentEnabled = currentVideoTrack?.enabled;
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio: false });
+            const newVideoTrack = stream.getVideoTracks()[0];
+            if (!newVideoTrack) throw new Error('Ingen video-spår hittades');
+            newVideoTrack.enabled = currentEnabled;
+            if (currentVideoTrack) {
+                currentVideoTrack.stop();
+                localStreamRef.current.removeTrack(currentVideoTrack);
+            }
+            localStreamRef.current.addTrack(newVideoTrack);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            setSelectedCameraId(deviceId);
+            const settings = newVideoTrack.getSettings();
+            if (settings.facingMode) setFacingMode(settings.facingMode);
+            peersRef.current.forEach(peer => {
+                const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
+                if (sender) sender.replaceTrack(newVideoTrack);
+            });
+        } catch (err) {
+            console.error('Failed to select camera:', err);
+            alert('Kunde inte byta kamera: ' + err.message);
+        }
+    };
+
+    // Select microphone by deviceId
+    const selectMicrophone = async (deviceId) => {
+        if (!deviceId || !localStreamRef.current) return;
+        try {
+            const currentAudioTrack = localStreamRef.current.getAudioTracks()[0];
+            const currentEnabled = currentAudioTrack?.enabled;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } }, video: false });
+            const newAudioTrack = stream.getAudioTracks()[0];
+            if (!newAudioTrack) throw new Error('Ingen ljud-spår hittades');
+            if (currentEnabled !== undefined) newAudioTrack.enabled = currentEnabled;
+            if (currentAudioTrack) {
+                currentAudioTrack.stop();
+                localStreamRef.current.removeTrack(currentAudioTrack);
+            }
+            localStreamRef.current.addTrack(newAudioTrack);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            setSelectedMicrophoneId(deviceId);
+            peersRef.current.forEach(peer => {
+                const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
+                if (sender) sender.replaceTrack(newAudioTrack);
+            });
+            if (socketRef.current) {
+                socketRef.current.emit('media-state-change', { type: 'audio', enabled: newAudioTrack.enabled });
+            }
+        } catch (err) {
+            console.error('Failed to select microphone:', err);
+            alert('Kunde inte byta mikrofon: ' + err.message);
+        }
+    };
+
+    // Select speaker (audio output) by deviceId
+    const selectSpeaker = (deviceId) => {
+        setSelectedSpeakerId(deviceId);
+    };
+
     const toggleScreenShare = async () => {
         // (Simplified for brevity - Screen sharing logic handled as before)
         // Note: Screen sharing usually implies Video ON for others, handling that state is bonus
@@ -442,6 +543,10 @@ export function useWebRTC(roomId, token, username) {
         isCameraOn,
         isMicOn,
         isScreenSharing,
+        devices,
+        selectedCameraId,
+        selectedMicrophoneId,
+        selectedSpeakerId,
         participants,
         messages,
         participantStates, // New export
@@ -449,6 +554,9 @@ export function useWebRTC(roomId, token, username) {
         toggleMic,
         toggleScreenShare,
         switchCamera,
+        selectCamera,
+        selectMicrophone,
+        selectSpeaker,
         sendMessage,
         sendAdminCommand
     };

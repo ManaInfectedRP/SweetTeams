@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import './Controls.css';
 
 export default function Controls({
@@ -8,10 +9,20 @@ export default function Controls({
     onToggleMic,
     onToggleScreenShare,
     onSwitchCamera,
-    onLeave
+    onLeave,
+    // Device selection
+    devices,
+    selectedCameraId,
+    selectedMicrophoneId,
+    selectedSpeakerId,
+    onSelectCamera,
+    onSelectMicrophone,
+    onSelectSpeaker
 }) {
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const supportsOutputSelection = typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+    const [showSettings, setShowSettings] = useState(false);
     return (
         <div className="controls-container">
             <div className="controls-group">
@@ -50,9 +61,52 @@ export default function Controls({
                 )}
             </div>
 
-            <button onClick={onLeave} className="btn-leave">
+            <div className="controls-group">
+                <button
+                    onClick={() => setShowSettings(s => !s)}
+                    className="btn-control"
+                    title="Inställningar"
+                >
+                    ⚙️
+                </button>
+
+                <button onClick={onLeave} className="btn-leave">
                 Lämna möte
-            </button>
+                </button>
+            </div>
+
+            {showSettings && (
+                <div className="device-settings-panel">
+                    <div className="device-setting">
+                        <label>Kamera</label>
+                        <select value={selectedCameraId || ''} onChange={(e) => onSelectCamera?.(e.target.value)}>
+                            {(devices?.videoinput || []).map(d => (
+                                <option key={d.deviceId} value={d.deviceId}>{d.label || 'Kamera'}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="device-setting">
+                        <label>Mikrofon</label>
+                        <select value={selectedMicrophoneId || ''} onChange={(e) => onSelectMicrophone?.(e.target.value)}>
+                            {(devices?.audioinput || []).map(d => (
+                                <option key={d.deviceId} value={d.deviceId}>{d.label || 'Mikrofon'}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="device-setting">
+                        <label>Högtalare</label>
+                        {supportsOutputSelection ? (
+                            <select value={selectedSpeakerId || ''} onChange={(e) => onSelectSpeaker?.(e.target.value)}>
+                                {(devices?.audiooutput || []).map(d => (
+                                    <option key={d.deviceId} value={d.deviceId}>{d.label || 'Högtalare'}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div className="text-secondary" style={{ fontSize: '0.9rem' }}>Din webbläsare stöder inte val av uppspelningsenhet.</div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
