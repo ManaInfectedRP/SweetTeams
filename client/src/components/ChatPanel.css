@@ -14,6 +14,16 @@
     justify-content: space-between;
 }
 
+@media (max-width: 768px) {
+    .chat-header {
+        padding: var(--space-md);
+    }
+    
+    .chat-panel {
+        border-left: none;
+    }
+}
+
 .chat-header h3 {
     margin: 0;
     font-size: var(--font-size-lg);

@@ -33,7 +33,8 @@ app.get('/api/health', (req, res) => {
 setupSignaling(httpServer);
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 SweetTeams server running on http://localhost:${PORT}`);
     console.log(`📡 WebSocket signaling ready`);
+    console.log(`📱 Network access enabled - accessible from other devices`);
 });
