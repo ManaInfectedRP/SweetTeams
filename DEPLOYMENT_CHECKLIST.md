@@ -4,10 +4,10 @@ Använd denna checklista innan deployment till Render.com:
 
 ## Före Deployment
 
-- [ ] Koden är pushad till GitHub (main branch)
-- [ ] `.env` filer finns lokalt (men är INTE i git)
-- [ ] `.gitignore` inkluderar `.env` och `.env.local`
-- [ ] Alla dependencies är installerade lokalt och testade
+- [x] Koden är pushad till GitHub (main branch)
+- [x] `.env` filer finns lokalt (men är INTE i git)
+- [x] `.gitignore` inkluderar `.env` och `.env.local`
+- [x] Alla dependencies är installerade lokalt och testade
 
 ## Lokalt Test
 
@@ -25,30 +25,30 @@ npm start
 ## Render.com Setup
 
 ### Backend (Web Service)
-- [ ] Service skapad: `sweetteams-server`
-- [ ] Root Directory: `server`
-- [ ] Build Command: `npm install`
-- [ ] Start Command: `npm start`
-- [ ] Environment Variables satta:
-  - [ ] `PORT=10000`
-  - [ ] `NODE_ENV=production`
-  - [ ] `JWT_SECRET` (generera säker nyckel!)
-  - [ ] `CLIENT_URL` (frontend URL)
-  - [ ] `DB_PATH=./sweetteams.db`
+- [x] Service skapad: `sweetteams-server`
+- [x] Root Directory: `server`
+- [x] Build Command: `npm install`
+- [x] Start Command: `npm start`
+- [x] Environment Variables satta:
+  - [x] `PORT=10000`
+  - [x] `NODE_ENV=production`
+  - [x] `JWT_SECRET` (generera säker nyckel!)
+  - [x] `CLIENT_URL` (frontend URL)
+  - [x] `DB_PATH=./sweetteams.db`
 
 ### Frontend (Static Site)
-- [ ] Service skapad: `sweetteams`
-- [ ] Root Directory: `client`
-- [ ] Build Command: `npm install && npm run build`
-- [ ] Publish Directory: `dist`
-- [ ] Environment Variables satta:
-  - [ ] `VITE_API_URL` (backend URL)
+- [x] Service skapad: `sweetteams`
+- [x] Root Directory: `client`
+- [x] Build Command: `npm install && npm run build`
+- [x] Publish Directory: `dist`
+- [x] Environment Variables satta:
+  - [x] `VITE_API_URL` (backend URL)
 
 ## Efter Deployment
 
-- [ ] Backend service körs utan fel (kolla logs)
-- [ ] Frontend site är tillgänglig
-- [ ] Backend `CLIENT_URL` uppdaterad med frontend URL
+- [x] Backend service körs utan fel (kolla logs)
+- [x] Frontend site är tillgänglig
+- [x] Backend `CLIENT_URL` uppdaterad med frontend URL
 - [ ] Testa registrering av ny användare
 - [ ] Testa skapa rum
 - [ ] Testa gå med i rum
