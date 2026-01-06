@@ -144,7 +144,9 @@ export default function VideoGrid({
                                     </div>
                                 )}
                                 <div className="user-label">
-                                    {username} (Du) {currentUserId === creatorId && '⭐'}
+                                    {username} (Du)
+                                    {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
+                                    {currentUserIsModerator && <span title="Moderator"> 🛡️</span>}
                                 </div>
                             </div>
                         );

@@ -155,17 +155,16 @@ export function useWebRTC(roomId, token, username) {
                 if (peer) peer.signal(answer);
             });
 
+            socket.on('user-role-updated', ({ socketId, role }) => {
+                if (!mounted) return;
+                setParticipants(prev => prev.map(p =>
+                    p.socketId === socketId ? { ...p, role } : p
+                ));
+            });
+
             socket.on('ice-candidate', ({ candidate, from }) => {
                 const peer = peersRef.current.get(from);
                 if (peer) peer.signal(candidate);
-
-                        // Handle role updates
-                        socket.on('user-role-updated', ({ socketId, role }) => {
-                            if (!mounted) return;
-                            setParticipants(prev => prev.map(p =>
-                                p.socketId === socketId ? { ...p, role } : p
-                            ));
-                        });
             });
 
             socket.on('user-left', ({ socketId }) => {
