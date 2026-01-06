@@ -11,6 +11,7 @@ export default function VideoGrid({
     currentUserId,
     isHost,
     onAdminAction,
+        onSetModerator,
     participants = [], // Array of { socketId, userId, username }
     participantStates = new Map(), // Map of socketId -> { audio, video }
     selectedSpeakerId
@@ -147,17 +148,21 @@ export default function VideoGrid({
                     }
                     const { socketId, remote } = tile;
                     const state = getRemoteState(socketId);
+                                        const participant = getParticipant(socketId);
                     return (
                         <RemoteVideo
                             key={socketId}
                             remote={remote}
                             socketId={socketId}
+                                                        userId={participant?.userId}
+                                                        role={participant?.role || 'participant'}
                             isHost={isHost}
                             isRemoteHost={isRemoteHost(socketId)}
                             mediaState={state}
                             showMenu={activeMenu === socketId}
                             onMenuClick={(e) => handleMenuClick(e, socketId)}
                             onAdminAction={handleAdminAction}
+                                                        onSetModerator={onSetModerator}
                             selectedSpeakerId={selectedSpeakerId}
                         />
                     );
@@ -184,7 +189,7 @@ export default function VideoGrid({
     );
 }
 
-function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, selectedSpeakerId }) {
+function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -206,11 +211,13 @@ function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showM
     }, [selectedSpeakerId]);
 
     const isVideoEnabled = mediaState.video;
+    const isModerator = role === 'moderator';
+    const canManage = (isHost || isModerator) && !isRemoteHost;
 
     return (
         <div className="video-container">
-            {/* Admin Control Overlay */}
-            {isHost && (
+            {/* Admin/Moderator Control Overlay */}
+            {canManage && (
                 <div className="admin-controls-trigger" onClick={onMenuClick}>
                     ⋮
                 </div>
@@ -218,22 +225,38 @@ function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showM
 
             {showMenu && (
                 <div className="admin-menu">
+                    {/* Admin-only: Promote/Demote Moderator */}
+                    {isHost && role === 'participant' && (
+                        <button onClick={() => onSetModerator?.(userId, true)}>
+                            Gör till Moderator
+                        </button>
+                    )}
+                    {isHost && isModerator && (
+                        <button onClick={() => onSetModerator?.(userId, false)}>
+                            Ta bort Moderator
+                        </button>
+                    )}
+
                     {/* Admin kan bara stänga av mikrofon, inte slå på (integritetsskydd) */}
                     {mediaState.audio && (
                         <button onClick={() => onAdminAction('mute-mic', socketId)}>
                             Stäng av Mikrofon
                         </button>
                     )}
-                    <button onClick={() => onAdminAction('toggle-camera', socketId)}>
-                        {mediaState.video ? 'Stäng av Kamera' : 'Slå på Kamera'}
-                    </button>
+                    {/* Only admin can toggle camera */}
+                    {isHost && (
+                        <button onClick={() => onAdminAction('toggle-camera', socketId)}>
+                            {mediaState.video ? 'Stäng av Kamera' : 'Slå på Kamera'}
+                        </button>
+                    )}
                     <button onClick={() => onAdminAction('kick', socketId)} className="danger">Sparka ut</button>
                 </div>
             )}
 
             {/* Status Icons Overlay */}
             <div className="status-icons">
-                {!mediaState.audio && <span className="status-icon" title="Mick av">🎤🚫</span>}
+                {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
+                {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
                 {!mediaState.video && <span className="status-icon" title="Kamera av">📷🚫</span>}
             </div>
 
@@ -251,7 +274,9 @@ function RemoteVideo({ remote, socketId, isHost, isRemoteHost, mediaState, showM
             )}
 
             <div className="user-label">
-                {remote.username} {isRemoteHost && '⭐'}
+                {remote.username}
+                {isRemoteHost && <span title="Admin"> ⭐</span>}
+                {isModerator && <span title="Moderator"> 🛡️</span>}
             </div>
         </div>
     );

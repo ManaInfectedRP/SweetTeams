@@ -1,0 +1,94 @@
+function RemoteVideo({ remote, socketId, userId, role, isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        if (videoRef.current && remote.stream) {
+            videoRef.current.srcObject = remote.stream;
+        }
+    }, [remote.stream]);
+
+    // Apply selected speaker/output device if supported
+    useEffect(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        const canSetSink = typeof el.setSinkId === 'function';
+        if (canSetSink && selectedSpeakerId) {
+            el.setSinkId(selectedSpeakerId).catch(err => {
+                console.warn('setSinkId failed:', err);
+            });
+        }
+    }, [selectedSpeakerId]);
+
+    const isVideoEnabled = mediaState.video;
+    const isModerator = role === 'moderator';
+    const canManage = (isHost || isModerator) && !isRemoteHost;
+
+    return (
+        <div className="video-container">
+            {/* Admin/Moderator Control Overlay */}
+            {canManage && (
+                <div className="admin-controls-trigger" onClick={onMenuClick}>
+                    ⋮
+                </div>
+            )}
+
+            {showMenu && (
+                <div className="admin-menu">
+                    {/* Admin-only: Promote/Demote Moderator */}
+                    {isHost && role === 'participant' && (
+                        <button onClick={() => onSetModerator(userId, true)}>
+                            Gör till Moderator
+                        </button>
+                    )}
+                    {isHost && isModerator && (
+                        <button onClick={() => onSetModerator(userId, false)}>
+                            Ta bort Moderator
+                        </button>
+                    )}
+                    
+                    {/* Admin and Moderators can mute mic */}
+                    {mediaState.audio && (
+                        <button onClick={() => onAdminAction('mute-mic', socketId)}>
+                            Stäng av Mikrofon
+                        </button>
+                    )}
+                    
+                    {/* Only admin can toggle camera, not moderators */}
+                    {isHost && (
+                        <button onClick={() => onAdminAction('toggle-camera', socketId)}>
+                            {mediaState.video ? 'Stäng av Kamera' : 'Slå på Kamera'}
+                        </button>
+                    )}
+                    
+                    {/* Admin and Moderators can kick */}
+                    <button onClick={() => onAdminAction('kick', socketId)} className="danger">Sparka ut</button>
+                </div>
+            )}
+
+            {/* Status Icons Overlay */}
+            <div className="status-icons">
+                {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
+                {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
+                {!mediaState.video && <span className="status-icon" title="Kamera av">📷🚫</span>}
+            </div>
+
+            <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className={isVideoEnabled ? '' : 'hidden'}
+            />
+            {!isVideoEnabled && (
+                <div className="video-placeholder">
+                    <div className="video-placeholder-icon">📹</div>
+                </div>
+            )}
+
+            <div className="video-username">
+                {remote.username}
+                {role === 'admin' && <span title="Admin"> ⭐</span>}
+                {isModerator && <span title="Moderator"> 🛡️</span>}
+            </div>
+        </div>
+    );
+}

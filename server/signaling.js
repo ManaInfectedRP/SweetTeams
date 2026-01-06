@@ -1,9 +1,11 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { deleteRoom } from './database.js';
+import { deleteRoom, findRoomByLinkCode } from './database.js';
 
 // Store active rooms and their participants
 const rooms = new Map();
+// Store moderators per room: roomId -> Set of userIds
+const roomModerators = new Map();
 
 export function setupSignaling(httpServer) {
     const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -50,7 +52,8 @@ export function setupSignaling(httpServer) {
             roomParticipants.set(socket.id, {
                 userId: socket.userId,
                 username: socket.username,
-                socketId: socket.id
+                socketId: socket.id,
+                role: 'participant' // Will be updated below
             });
 
             // Notify others in the room
@@ -61,8 +64,29 @@ export function setupSignaling(httpServer) {
             });
 
             // Send current participants to the new user
-            const participants = Array.from(roomParticipants.values());
-            socket.emit('room-participants', participants);
+            // Get room info to determine admin
+            findRoomByLinkCode(roomId).then(room => {
+                const adminId = room?.creator_id;
+                const moderators = roomModerators.get(roomId) || new Set();
+                
+                // Set role for this user
+                const participant = roomParticipants.get(socket.id);
+                if (socket.userId === adminId) {
+                    participant.role = 'admin';
+                } else if (moderators.has(socket.userId)) {
+                    participant.role = 'moderator';
+                }
+                
+                // Send participants with roles
+                const participants = Array.from(roomParticipants.values());
+                socket.emit('room-participants', participants);
+                
+                // Notify others about role update
+                socket.to(roomId).emit('user-role-updated', {
+                    socketId: socket.id,
+                    role: participant.role
+                });
+            });
 
             console.log(`${socket.username} joined room ${roomId}`);
         });
@@ -124,9 +148,23 @@ export function setupSignaling(httpServer) {
         });
 
         // Admin actions (mute, video toggle, kick)
-        socket.on('admin-action', ({ targetSocketId, action }) => {
-            // In a real app, verify that socket.userId is actually the room owner
-            // For now, we trust the client logic (MVP)
+        socket.on('admin-action', async ({ targetSocketId, action }) => {
+            if (!socket.roomId) return;
+            
+            // Verify permissions
+            const room = await findRoomByLinkCode(socket.roomId);
+            const isAdmin = socket.userId === room?.creator_id;
+            const moderators = roomModerators.get(socket.roomId) || new Set();
+            const isModerator = moderators.has(socket.userId);
+            
+            if (!isAdmin && !isModerator) {
+                return; // No permission
+            }
+            
+            // Moderators can only mute-mic and kick, not toggle-camera
+            if (isModerator && !isAdmin && action === 'toggle-camera') {
+                return; // Moderators can't control cameras
+            }
 
             if (action === 'kick') {
                 io.to(targetSocketId).emit('kicked');
@@ -180,3 +218,40 @@ export function setupSignaling(httpServer) {
 
     return io;
 }
+
+        // Promote/demote moderator (admin only)
+        socket.on('set-moderator', async ({ targetUserId, isModerator }) => {
+            if (!socket.roomId) return;
+            
+            const room = await findRoomByLinkCode(socket.roomId);
+            const isAdmin = socket.userId === room?.creator_id;
+            
+            if (!isAdmin) return; // Only admin can set moderators
+            
+            if (!roomModerators.has(socket.roomId)) {
+                roomModerators.set(socket.roomId, new Set());
+            }
+            
+            const moderators = roomModerators.get(socket.roomId);
+            
+            if (isModerator) {
+                moderators.add(targetUserId);
+            } else {
+                moderators.delete(targetUserId);
+            }
+            
+            // Update role for the target user
+            const roomParticipants = rooms.get(socket.roomId);
+            if (roomParticipants) {
+                roomParticipants.forEach(p => {
+                    if (p.userId === targetUserId) {
+                        p.role = isModerator ? 'moderator' : 'participant';
+                        // Notify everyone about role change
+                        io.to(socket.roomId).emit('user-role-updated', {
+                            socketId: p.socketId,
+                            role: p.role
+                        });
+                    }
+                });
+            }
+        });

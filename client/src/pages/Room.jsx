@@ -30,6 +30,7 @@ export default function Room() {
         switchCamera,
         sendMessage,
         sendAdminCommand,
+            setModerator,
         participants,
         participantStates,
         // Device selection
@@ -122,6 +123,7 @@ export default function Room() {
                         currentUserId={user?.id}
                         isHost={user?.id === room?.creatorId}
                         onAdminAction={sendAdminCommand}
+                        onSetModerator={setModerator}
                         participants={participants}
                         participantStates={participantStates}
                         selectedSpeakerId={selectedSpeakerId}

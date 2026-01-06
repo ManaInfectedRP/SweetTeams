@@ -140,7 +140,7 @@ export function useWebRTC(roomId, token, username) {
                 if (!mounted) return;
                 setParticipants(prev => {
                     if (prev.some(p => p.socketId === socketId)) return prev;
-                    return [...prev, { socketId, userId, username: peerUsername }];
+                    return [...prev, { socketId, userId, username: peerUsername, role: 'participant' }];
                 });
                 createPeer(socketId, true, peerUsername, null, socket);
             });
@@ -158,6 +158,14 @@ export function useWebRTC(roomId, token, username) {
             socket.on('ice-candidate', ({ candidate, from }) => {
                 const peer = peersRef.current.get(from);
                 if (peer) peer.signal(candidate);
+
+                        // Handle role updates
+                        socket.on('user-role-updated', ({ socketId, role }) => {
+                            if (!mounted) return;
+                            setParticipants(prev => prev.map(p =>
+                                p.socketId === socketId ? { ...p, role } : p
+                            ));
+                        });
             });
 
             socket.on('user-left', ({ socketId }) => {
@@ -529,6 +537,12 @@ export function useWebRTC(roomId, token, username) {
     const sendAdminCommand = (targetSocketId, action) => {
         if (socketRef.current) {
             socketRef.current.emit('admin-action', { targetSocketId, action });
+
+            const setModerator = (targetUserId, isModerator) => {
+                if (socketRef.current) {
+                    socketRef.current.emit('set-moderator', { targetUserId, isModerator });
+                }
+            };
         }
     };
 
@@ -559,6 +573,7 @@ export function useWebRTC(roomId, token, username) {
         selectMicrophone,
         selectSpeaker,
         sendMessage,
-        sendAdminCommand
+        sendAdminCommand,
+        setModerator
     };
 }

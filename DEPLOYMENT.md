@@ -2,6 +2,21 @@
 
 Guide för att deploya SweetTeams till gratis hosting på **Render.com**
 
+---
+
+## 🆘 Snabb Felsökning
+
+**Frontend får 404 på `/api/` endpoints?**
+→ `VITE_API_URL` är inte satt eller är fel
+→ Gå till Render → sweetteams → Environment → Lägg till `VITE_API_URL=https://sweetteams-server.onrender.com`
+→ Gör **Manual Deploy → Clear build cache & deploy**
+
+**Backend returnerar CORS errors?**
+→ `CLIENT_URL` är inte satt eller är fel
+→ Gå till Render → sweetteams-server → Environment → Lägg till `CLIENT_URL=https://sweetteams.onrender.com`
+
+---
+
 ## 📋 Förutsättningar
 
 - Ett GitHub-konto
@@ -101,16 +116,21 @@ Fyll i:
 - **Name:** `sweetteams`
 - **Branch:** `main`
 - **Root Directory:** `client`
-- **Build Command:** `npm install && npm run build`
+- **Build Command:** `npm install && VITE_API_URL=https://sweetteams-server.onrender.com npm run build` **(Ändra URL:en till din backend-URL!)**
 - **Publish Directory:** `dist`
 
 ### 3.3 Environment Variables för Frontend
 
-Under **"Advanced"**, lägg till:
+**⚠️ VIKTIGT för Static Sites:** 
+Render Static Sites läser inte alltid `.env` filer korrekt. Istället har vi redan satt `VITE_API_URL` direkt i build-kommandot ovan.
 
-| Key | Value |
-|-----|-------|
-| `VITE_API_URL` | `https://sweetteams-server.onrender.com` (använd din backend-URL från steg 2.4) |
+Om du behöver ändra backend-URL:en senare:
+1. Gå till **Settings** → **Build & Deploy**
+2. Uppdatera **Build Command** med ny URL
+3. **Spara** och trigga en **Manual Deploy → Clear build cache & deploy**
+
+~~Du kan också lägga till under "Advanced":~~
+~~`VITE_API_URL` = `https://sweetteams-server.onrender.com`~~ (Fungerar inte alltid på static sites)
 
 4. Klicka på **"Create Static Site"**
 
@@ -165,9 +185,12 @@ Detta kommer att skapa båda services automatiskt!
 - Verifiera att alla environment variables är korrekt satta
 
 ### Frontend kan inte ansluta till backend:
-- Kontrollera att `VITE_API_URL` är korrekt i frontend environment variables
+- **Kontrollera att `VITE_API_URL` är korrekt i frontend environment variables**
+- **Gå till Render Dashboard → sweetteams → Environment → Verifiera `VITE_API_URL`**
+- **Om du ändrat den, gör Manual Deploy → Clear build cache & deploy**
 - Kontrollera att `CLIENT_URL` är korrekt i backend environment variables
 - Kontrollera CORS-inställningar i server logs
+- Öppna browser DevTools → Network → Kolla vilken URL API-anropen går till
 
 ### WebRTC-anslutningar fungerar inte:
 - Kontrollera att Socket.io ansluter korrekt (använd browser DevTools → Network → WS)
