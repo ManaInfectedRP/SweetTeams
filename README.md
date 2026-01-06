@@ -153,8 +153,23 @@ SweetTeams/
 │   └── dist/             # Output folder for .exe (after build)
 │
 ├── start_dev.bat          # Windows start script
-└── start_dev.sh           # Bash start script
+├── start_dev.sh           # Bash start script
+├── render.yaml            # Render.com deployment config
+└── DEPLOYMENT.md          # Deployment guide
 ```
+
+## 🌍 Deployment
+
+För att deploya SweetTeams till gratis hosting (Render.com), se den detaljerade guiden:
+
+👉 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Steg-för-steg guide för production deployment
+
+Guiden täcker:
+- ✅ Deployment till Render.com (gratis tier)
+- ✅ Frontend (React) + Backend (Node.js) + SQLite
+- ✅ Environment variables konfiguration
+- ✅ HTTPS och WebRTC setup
+- ✅ Troubleshooting tips
 
 ## 📝 Användning
 

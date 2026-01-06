@@ -1,0 +1,32 @@
+services:
+  # Backend Service
+  - type: web
+    name: sweetteams-server
+    runtime: node
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        value: https://sweetteams.onrender.com
+    healthCheckPath: /api/health
+
+  # Frontend Service (Static Site)
+  - type: web
+    name: sweetteams-frontend
+    runtime: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://sweetteams-server.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

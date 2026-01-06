@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { config } from '../config';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -20,7 +21,7 @@ export default function Dashboard() {
 
     const fetchRooms = async () => {
         try {
-            const response = await fetch('/api/rooms', {
+            const response = await fetch(`${config.apiUrl}/api/rooms`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -43,7 +44,7 @@ export default function Dashboard() {
         setCreating(true);
 
         try {
-            const response = await fetch('/api/rooms', {
+            const response = await fetch(`${config.apiUrl}/api/rooms`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

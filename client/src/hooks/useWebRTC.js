@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import SimplePeer from 'simple-peer';
+import { config } from '../config';
+import { config } from '../config';
 
 export function useWebRTC(roomId, token, username) {
     const [localStream, setLocalStream] = useState(null);
@@ -109,7 +111,7 @@ export function useWebRTC(roomId, token, username) {
                 }
             }
 
-            const socket = io({
+            const socket = io(config.wsUrl, {
                 path: '/socket.io',
                 auth: { token }
             });

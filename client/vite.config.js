@@ -4,7 +4,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     basicSsl(),
@@ -36,7 +36,7 @@ export default defineConfig({
   server: {
     host: true, // Tillåt åtkomst från nätverket
     port: 5173,
-    proxy: {
+    proxy: mode === 'development' ? {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true
@@ -46,6 +46,6 @@ export default defineConfig({
         ws: true,
         changeOrigin: true
       }
-    }
+    } : undefined
   }
-})
+}))

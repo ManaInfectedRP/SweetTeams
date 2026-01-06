@@ -6,9 +6,11 @@ import { deleteRoom } from './database.js';
 const rooms = new Map();
 
 export function setupSignaling(httpServer) {
+    const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+    
     const io = new Server(httpServer, {
         cors: {
-            origin: '*',
+            origin: process.env.NODE_ENV === 'production' ? CLIENT_URL : '*',
             methods: ['GET', 'POST'],
             credentials: true
         }

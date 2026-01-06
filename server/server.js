@@ -12,10 +12,11 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middleware
 app.use(cors({
-    origin: '*',
+    origin: process.env.NODE_ENV === 'production' ? CLIENT_URL : '*',
     credentials: true
 }));
 app.use(express.json());
