@@ -1,0 +1,39 @@
+import express from 'express';
+import { createServer } from 'http';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import roomRoutes from './routes/rooms.js';
+import { setupSignaling } from './signaling.js';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const httpServer = createServer(app);
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
+app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'SweetTeams server is running' });
+});
+
+// Setup Socket.io signaling
+setupSignaling(httpServer);
+
+// Start server
+httpServer.listen(PORT, () => {
+    console.log(`🚀 SweetTeams server running on http://localhost:${PORT}`);
+    console.log(`📡 WebSocket signaling ready`);
+});

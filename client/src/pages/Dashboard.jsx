@@ -1,0 +1,228 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './Dashboard.css';
+
+export default function Dashboard() {
+    const [rooms, setRooms] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [creating, setCreating] = useState(false);
+    const [roomName, setRoomName] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [error, setError] = useState('');
+    const { user, token, logout } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchRooms();
+    }, []);
+
+    const fetchRooms = async () => {
+        try {
+            const response = await fetch('/api/rooms', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setRooms(data.rooms);
+            }
+        } catch (err) {
+            console.error('Failed to fetch rooms:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const createRoom = async (e) => {
+        e.preventDefault();
+        setError('');
+        setCreating(true);
+
+        try {
+            const response = await fetch('/api/rooms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: roomName })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to create room');
+            }
+
+            const data = await response.json();
+            setRooms([data.room, ...rooms]);
+            setRoomName('');
+            setShowCreateModal(false);
+            navigate(`/room/${data.room.linkCode}`);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const copyRoomLink = (linkCode) => {
+        const link = `${window.location.origin}/room/${linkCode}`;
+        navigator.clipboard.writeText(link);
+        // You could add a toast notification here
+    };
+
+    return (
+        <div className="dashboard-container">
+            <nav className="dashboard-nav">
+                <div className="container">
+                    <div className="nav-content">
+                        <div className="nav-brand">
+                            <span className="nav-logo">🎥</span>
+                            <span className="nav-title">SweetTeams</span>
+                        </div>
+                        <div className="nav-actions">
+                            <div className="user-info">
+                                <span className="user-avatar">{user?.username?.[0]?.toUpperCase()}</span>
+                                <span className="user-name">{user?.username}</span>
+                            </div>
+                            <button onClick={logout} className="btn btn-secondary btn-sm">
+                                Logga ut
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <main className="dashboard-main">
+                <div className="container">
+                    <div className="dashboard-header">
+                        <div>
+                            <h1 className="dashboard-title">Mina rum</h1>
+                            <p className="text-secondary">Skapa och hantera dina videomöten</p>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="btn btn-primary btn-lg"
+                        >
+                            <span style={{ fontSize: '1.25rem' }}>+</span>
+                            Skapa nytt rum
+                        </button>
+                    </div>
+
+                    {loading ? (
+                        <div className="loading-state">
+                            <div className="animate-pulse" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                                🎥
+                            </div>
+                            <p className="text-secondary">Laddar rum...</p>
+                        </div>
+                    ) : rooms.length === 0 ? (
+                        <div className="empty-state card-glass">
+                            <div className="empty-icon">📹</div>
+                            <h3>Inga rum ännu</h3>
+                            <p className="text-secondary">Skapa ditt första rum för att komma igång</p>
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="btn btn-primary mt-lg"
+                            >
+                                Skapa rum
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="rooms-grid">
+                            {rooms.map((room) => (
+                                <div key={room.id} className="room-card card-glass animate-fade-in">
+                                    <div className="room-header">
+                                        <h3 className="room-name">{room.name}</h3>
+                                        <span className="room-code">{room.linkCode}</span>
+                                    </div>
+                                    <div className="room-meta">
+                                        <span className="text-muted text-sm">
+                                            Skapad {new Date(room.created_at).toLocaleDateString('sv-SE')}
+                                        </span>
+                                    </div>
+                                    <div className="room-actions">
+                                        <button
+                                            onClick={() => navigate(`/room/${room.linkCode}`)}
+                                            className="btn btn-primary"
+                                            style={{ flex: 1 }}
+                                        >
+                                            Gå med
+                                        </button>
+                                        <button
+                                            onClick={() => copyRoomLink(room.linkCode)}
+                                            className="btn btn-secondary"
+                                            title="Kopiera länk"
+                                        >
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            {showCreateModal && (
+                <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+                    <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Skapa nytt rum</h2>
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className="modal-close"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={createRoom}>
+                            {error && (
+                                <div className="alert alert-error">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="roomName" className="form-label">
+                                    Rumnamn
+                                </label>
+                                <input
+                                    id="roomName"
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="T.ex. Teammöte, Standup..."
+                                    value={roomName}
+                                    onChange={(e) => setRoomName(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="modal-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="btn btn-secondary"
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={creating}
+                                >
+                                    {creating ? 'Skapar...' : 'Skapa rum'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
