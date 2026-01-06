@@ -77,6 +77,9 @@ export default function VideoGrid({
         return p && p.userId === creatorId;
     };
 
+    const currentUser = participants.find(p => p.userId === currentUserId);
+    const currentUserIsModerator = currentUser?.role === 'moderator';
+
     const getRemoteState = (socketId) => {
         return participantStates.get(socketId) || { audio: true, video: true };
     };
@@ -148,7 +151,7 @@ export default function VideoGrid({
                     }
                     const { socketId, remote } = tile;
                     const state = getRemoteState(socketId);
-                                        const participant = getParticipant(socketId);
+                    const participant = getParticipantInfo(socketId);
                     return (
                         <RemoteVideo
                             key={socketId}
@@ -157,6 +160,7 @@ export default function VideoGrid({
                                                         userId={participant?.userId}
                                                         role={participant?.role || 'participant'}
                             isHost={isHost}
+                            canManage={isHost || currentUserIsModerator}
                             isRemoteHost={isRemoteHost(socketId)}
                             mediaState={state}
                             showMenu={activeMenu === socketId}
@@ -189,7 +193,7 @@ export default function VideoGrid({
     );
 }
 
-function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
+function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -212,12 +216,12 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, i
 
     const isVideoEnabled = mediaState.video;
     const isModerator = role === 'moderator';
-    const canManage = (isHost || isModerator) && !isRemoteHost;
+    const showManage = canManage && !isRemoteHost;
 
     return (
         <div className="video-container">
             {/* Admin/Moderator Control Overlay */}
-            {canManage && (
+            {showManage && (
                 <div className="admin-controls-trigger" onClick={onMenuClick}>
                     ⋮
                 </div>
