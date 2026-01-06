@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { config } from '../config';
 import { useWebRTC } from '../hooks/useWebRTC';
 import VideoGrid from '../components/VideoGrid';
 import ChatPanel from '../components/ChatPanel';
@@ -47,7 +48,7 @@ export default function Room() {
 
     const fetchRoom = async () => {
         try {
-            const response = await fetch(`/api/rooms/${linkCode}`, {
+            const response = await fetch(`${config.apiUrl}/api/rooms/${linkCode}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
