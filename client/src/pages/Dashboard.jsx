@@ -10,6 +10,7 @@ export default function Dashboard() {
     const [roomName, setRoomName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [error, setError] = useState('');
+    const [joinCode, setJoinCode] = useState('');
     const { user, token, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -74,6 +75,13 @@ export default function Dashboard() {
         // You could add a toast notification here
     };
 
+    const handleJoinByCode = (e) => {
+        e?.preventDefault?.();
+        const code = joinCode.trim();
+        if (!code) return;
+        navigate(`/room/${code}`);
+    };
+
     return (
         <div className="dashboard-container">
             <nav className="dashboard-nav">
@@ -103,13 +111,27 @@ export default function Dashboard() {
                             <h1 className="dashboard-title">Mina rum</h1>
                             <p className="text-secondary">Skapa och hantera dina videomöten</p>
                         </div>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="btn btn-primary btn-lg"
-                        >
-                            <span style={{ fontSize: '1.25rem' }}>+</span>
-                            Skapa nytt rum
-                        </button>
+                        <div className="dashboard-actions-wrap">
+                            <form className="join-room-form" onSubmit={handleJoinByCode}>
+                                <label htmlFor="joinCode" className="sr-only">Gå med i Rum</label>
+                                <input
+                                    id="joinCode"
+                                    type="text"
+                                    className="form-input join-room-input"
+                                    placeholder="Ange rumskod"
+                                    value={joinCode}
+                                    onChange={(e) => setJoinCode(e.target.value)}
+                                />
+                                <button type="submit" className="btn btn-secondary">Gå med i Rum</button>
+                            </form>
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="btn btn-primary btn-lg"
+                            >
+                                <span style={{ fontSize: '1.25rem' }}>+</span>
+                                Skapa nytt rum
+                            </button>
+                        </div>
                     </div>
 
                     {loading ? (
