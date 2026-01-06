@@ -118,9 +118,9 @@ export default function Room() {
                         screenStream={screenStream}
                         isCameraOn={isCameraOn}
                         username={user?.username}
-                        creatorId={room?.creator_id}
+                        creatorId={room?.creatorId}
                         currentUserId={user?.id}
-                        isHost={user?.id === room?.creator_id}
+                        isHost={user?.id === room?.creatorId}
                         onAdminAction={sendAdminCommand}
                         participants={participants}
                         participantStates={participantStates}
