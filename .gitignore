@@ -6,7 +6,7 @@ yarn.lock
 # Environment variables
 .env
 .env.local
-.env.production
+# .env.production is tracked for production builds on Render
 
 # Database
 *.db
