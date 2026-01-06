@@ -26,6 +26,7 @@ export default function Room() {
         toggleCamera,
         toggleMic,
         toggleScreenShare,
+        switchCamera,
         sendMessage,
         sendAdminCommand,
         participants,
@@ -122,6 +123,7 @@ export default function Room() {
                         onToggleCamera={toggleCamera}
                         onToggleMic={toggleMic}
                         onToggleScreenShare={toggleScreenShare}
+                        onSwitchCamera={switchCamera}
                         onLeave={handleLeave}
                     />
                 </div>

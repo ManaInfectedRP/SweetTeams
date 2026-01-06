@@ -9,6 +9,8 @@ export function useWebRTC(roomId, token, username) {
     const [isCameraOn, setIsCameraOn] = useState(true);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [facingMode, setFacingMode] = useState('user'); // 'user' = front, 'environment' = back
+    const [currentDeviceId, setCurrentDeviceId] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [messages, setMessages] = useState([]);
 
@@ -41,9 +43,13 @@ export function useWebRTC(roomId, token, username) {
             return track;
         };
 
-        const getMediaStream = async () => {
+        const getMediaStream = async (videoConstraints = true) => {
             try {
-                return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const constraints = {
+                    audio: true,
+                    video: videoConstraints === true ? { facingMode: facingMode } : videoConstraints
+                };
+                return await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.warn('Could not get video+audio, trying audio only with dummy video:', err);
                 try {
@@ -76,6 +82,18 @@ export function useWebRTC(roomId, token, username) {
             if (stream) {
                 localStreamRef.current = stream;
                 setLocalStream(stream);
+                
+                // Store initial device ID and facing mode
+                const videoTrack = stream.getVideoTracks()[0];
+                if (videoTrack) {
+                    const settings = videoTrack.getSettings();
+                    if (settings.deviceId) {
+                        setCurrentDeviceId(settings.deviceId);
+                    }
+                    if (settings.facingMode) {
+                        setFacingMode(settings.facingMode);
+                    }
+                }
             }
 
             const socket = io({
@@ -280,6 +298,88 @@ export function useWebRTC(roomId, token, username) {
         }
     };
 
+    const switchCamera = async () => {
+        if (!localStreamRef.current) return;
+        
+        try {
+            const currentVideoTrack = localStreamRef.current.getVideoTracks()[0];
+            const currentVideoEnabled = currentVideoTrack?.enabled;
+            
+            // Stop the current video track first
+            if (currentVideoTrack) {
+                currentVideoTrack.stop();
+            }
+            
+            // Toggle facing mode
+            const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+            
+            // Request new video stream with fresh constraints
+            let newVideoStream;
+            try {
+                newVideoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: newFacingMode },
+                    audio: false
+                });
+            } catch (e1) {
+                console.warn('Failed with facingMode, trying alternate approach:', e1);
+                // Try without any facingMode - let browser choose
+                newVideoStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+            }
+            
+            if (!newVideoStream) {
+                alert('Kunde inte öppna kamera.');
+                return;
+            }
+            
+            const newVideoTrack = newVideoStream.getVideoTracks()[0];
+            if (!newVideoTrack) {
+                alert('Ingen videospår kunde hämtas.');
+                return;
+            }
+            
+            // Get settings from new track
+            const newSettings = newVideoTrack.getSettings();
+            if (newSettings.deviceId) {
+                setCurrentDeviceId(newSettings.deviceId);
+            }
+            if (newSettings.facingMode) {
+                setFacingMode(newSettings.facingMode);
+            } else {
+                // If facingMode is not available in settings, toggle our state anyway
+                setFacingMode(newFacingMode);
+            }
+            
+            // Maintain video enabled state
+            newVideoTrack.enabled = currentVideoEnabled;
+            
+            // Replace old track with new one
+            if (currentVideoTrack) {
+                localStreamRef.current.removeTrack(currentVideoTrack);
+            }
+            localStreamRef.current.addTrack(newVideoTrack);
+            
+            // Trigger re-render
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            
+            // Update all peer connections
+            peersRef.current.forEach(peer => {
+                const videoSender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
+                if (videoSender) {
+                    videoSender.replaceTrack(newVideoTrack).catch(err => {
+                        console.error('Failed to replace track for peer:', err);
+                    });
+                }
+            });
+            
+        } catch (err) {
+            console.error('Error switching camera:', err);
+            alert('Kunde inte byta kamera. Din telefon kanske inte stöder detta.');
+        }
+    };
+
     const toggleScreenShare = async () => {
         // (Simplified for brevity - Screen sharing logic handled as before)
         // Note: Screen sharing usually implies Video ON for others, handling that state is bonus
@@ -348,6 +448,7 @@ export function useWebRTC(roomId, token, username) {
         toggleCamera,
         toggleMic,
         toggleScreenShare,
+        switchCamera,
         sendMessage,
         sendAdminCommand
     };

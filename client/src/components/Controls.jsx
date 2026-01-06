@@ -7,8 +7,11 @@ export default function Controls({
     onToggleCamera,
     onToggleMic,
     onToggleScreenShare,
+    onSwitchCamera,
     onLeave
 }) {
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     return (
         <div className="controls-container">
             <div className="controls-group">
@@ -35,6 +38,16 @@ export default function Controls({
                 >
                     🖥️
                 </button>
+
+                {isMobile && onSwitchCamera && (
+                    <button
+                        onClick={onSwitchCamera}
+                        className="btn-control"
+                        title="Byt kamera"
+                    >
+                        🔄
+                    </button>
+                )}
             </div>
 
             <button onClick={onLeave} className="btn-leave">
