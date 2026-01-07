@@ -382,19 +382,18 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
 // ScreenShareVideo component for the main screen share display
 function ScreenShareVideo({ stream, username, label }) {
     const videoRef = useRef(null);
-    const [streamKey, setStreamKey] = useState(0);
 
     useEffect(() => {
         if (videoRef.current && stream) {
             console.log('Setting srcObject for main screen share, tracks:', stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.label || 'no-label'}`));
             videoRef.current.srcObject = stream;
-            // Force component update
-            setStreamKey(prev => prev + 1);
+            // Force the video to load and play
+            videoRef.current.load();
         }
     }, [stream]);
 
     return (
-        <div className="screen-share-video" key={streamKey}>
+        <div className="screen-share-video">
             <video
                 ref={videoRef}
                 autoPlay
