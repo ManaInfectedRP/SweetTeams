@@ -34,6 +34,7 @@ export default function Room() {
         deleteMessage,
         participants,
         participantStates,
+        activeScreenSharer,
         // Device selection
         devices,
         selectedCameraId,
@@ -128,6 +129,8 @@ export default function Room() {
                         participants={participants}
                         participantStates={participantStates}
                         selectedSpeakerId={selectedSpeakerId}
+                        activeScreenSharer={activeScreenSharer}
+                        mySocketId={participants.find(p => p.userId === user?.id)?.socketId}
                     />
                     <Controls
                         isCameraOn={isCameraOn}

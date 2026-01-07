@@ -19,6 +19,9 @@ export function useWebRTC(roomId, token, username) {
     const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [messages, setMessages] = useState([]);
+    
+    // Track who is currently screen sharing: { socketId, username } or null
+    const [activeScreenSharer, setActiveScreenSharer] = useState(null);
 
     // Track media state of all participants (socketId -> { audio: bool, video: bool })
     const [participantStates, setParticipantStates] = useState(new Map());
@@ -210,6 +213,47 @@ export function useWebRTC(roomId, token, username) {
                     newStates.set(socketId, { ...currentState, [type]: enabled });
                     return newStates;
                 });
+            });
+            
+            // --- SCREEN SHARING EVENTS ---
+            socket.on('user-screen-sharing', ({ socketId, username }) => {
+                if (!mounted) return;
+                console.log(`User ${username} (${socketId}) started screen sharing`);
+                setActiveScreenSharer({ socketId, username });
+            });
+            
+            socket.on('user-stopped-screen-sharing', ({ socketId }) => {
+                if (!mounted) return;
+                console.log(`User stopped screen sharing: ${socketId}`);
+                setActiveScreenSharer(prev => {
+                    if (prev && prev.socketId === socketId) {
+                        return null;
+                    }
+                    return prev;
+                });
+            });
+            
+            socket.on('screen-share-rejected', ({ reason, sharerUsername }) => {
+                if (!mounted) return;
+                if (reason === 'already-sharing') {
+                    alert(`${sharerUsername} delar redan sin skärm. Bara en person kan dela åt gången.`);
+                }
+                // Revert our screen sharing state
+                if (screenStreamRef.current) {
+                    screenStreamRef.current.getTracks().forEach(track => track.stop());
+                    screenStreamRef.current = null;
+                    setScreenStream(null);
+                    setIsScreenSharing(false);
+                    
+                    // Restore regular camera track to peers
+                    if (localStreamRef.current) {
+                        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                        peersRef.current.forEach(peer => {
+                            const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
+                            if (sender) sender.replaceTrack(videoTrack);
+                        });
+                    }
+                }
             });
 
             // --- ADMIN COMMANDS ---
@@ -495,16 +539,17 @@ export function useWebRTC(roomId, token, username) {
     };
 
     const toggleScreenShare = async () => {
-        // (Simplified for brevity - Screen sharing logic handled as before)
-        // Note: Screen sharing usually implies Video ON for others, handling that state is bonus
-        // We keep the logic from previous steps
         if (isScreenSharing) {
+            // Stop screen sharing
             if (screenStreamRef.current) {
                 screenStreamRef.current.getTracks().forEach(track => track.stop());
                 screenStreamRef.current = null;
                 setScreenStream(null);
                 setIsScreenSharing(false);
+                setActiveScreenSharer(null);
                 socketRef.current.emit('screen-share-stopped');
+                
+                // Restore regular camera track to peers
                 if (localStreamRef.current) {
                     const videoTrack = localStreamRef.current.getVideoTracks()[0];
                     peersRef.current.forEach(peer => {
@@ -514,18 +559,31 @@ export function useWebRTC(roomId, token, username) {
                 }
             }
         } else {
+            // Start screen sharing
             try {
                 const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 screenStreamRef.current = stream;
                 setScreenStream(stream);
                 setIsScreenSharing(true);
+                
+                // Set ourselves as the active sharer optimistically
+                // (will be confirmed or rejected by server)
                 socketRef.current.emit('screen-share-started');
+                
                 const screenTrack = stream.getVideoTracks()[0];
+                
+                // Replace video track in all peer connections
                 peersRef.current.forEach(peer => {
                     const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
                     if (sender) sender.replaceTrack(screenTrack);
                 });
-                screenTrack.onended = () => toggleScreenShare();
+                
+                // Handle when user stops sharing from browser UI
+                screenTrack.onended = () => {
+                    if (isScreenSharing) {
+                        toggleScreenShare();
+                    }
+                };
             } catch (err) {
                 console.error('Error sharing screen:', err);
             }
@@ -575,6 +633,7 @@ export function useWebRTC(roomId, token, username) {
         participants,
         messages,
         participantStates, // New export
+        activeScreenSharer, // Track who is sharing screen
         toggleCamera,
         toggleMic,
         toggleScreenShare,

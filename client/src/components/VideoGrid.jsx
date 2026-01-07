@@ -14,7 +14,9 @@ export default function VideoGrid({
         onSetModerator,
     participants = [], // Array of { socketId, userId, username }
     participantStates = new Map(), // Map of socketId -> { audio, video }
-    selectedSpeakerId
+    selectedSpeakerId,
+    activeScreenSharer = null, // { socketId, username } or null
+    mySocketId = null
 }) {
     const localVideoRef = useRef(null);
     const [activeMenu, setActiveMenu] = useState(null); // socketId of active menu
@@ -123,11 +125,85 @@ export default function VideoGrid({
         touchStartX.current = null;
         touchStartY.current = null;
     };
+    
+    // Check if someone is sharing screen
+    const isSomeoneScreenSharing = activeScreenSharer !== null;
+    const isLocalScreenSharing = isSomeoneScreenSharing && activeScreenSharer.socketId === mySocketId;
+    const screenSharerSocketId = activeScreenSharer?.socketId;
 
     return (
         <div className="video-grid-wrapper" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-            <div className={`video-grid ${getGridClass(visibleCount)}`}>
-                {visibleTiles.map((tile, idx) => {
+            {isSomeoneScreenSharing ? (
+                // FULLSCREEN LAYOUT - Screen share mode
+                <>
+                    <div className="screen-share-main">
+                        {isLocalScreenSharing ? (
+                            // Show local screen stream
+                            <ScreenShareVideo
+                                stream={screenStream}
+                                username={username}
+                                label={`${username} (Du) delar skärm`}
+                            />
+                        ) : (
+                            // Show remote screen stream
+                            <ScreenShareVideo
+                                stream={remoteStreams.get(screenSharerSocketId)?.stream}
+                                username={activeScreenSharer.username}
+                                label={`${activeScreenSharer.username} delar skärm`}
+                            />
+                        )}
+                    </div>
+                    
+                    <div className="screen-share-thumbnails">
+                        {/* Local video thumbnail */}
+                        <div className="video-thumbnail local-thumbnail" key="local">
+                            <video
+                                ref={localVideoRef}
+                                autoPlay
+                                muted
+                                playsInline
+                                className={isCameraOn ? '' : 'hidden'}
+                            />
+                            {!isCameraOn && (
+                                <div className="video-placeholder">
+                                    <span>{username?.[0]?.toUpperCase()}</span>
+                                </div>
+                            )}
+                            <div className="user-label">
+                                {username}
+                                {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
+                            </div>
+                        </div>
+                        
+                        {/* Remote video thumbnails (excluding the one sharing screen if remote) */}
+                        {Array.from(remoteStreams, ([socketId, remote]) => {
+                            // Skip the remote that is sharing screen
+                            if (!isLocalScreenSharing && socketId === screenSharerSocketId) {
+                                return null;
+                            }
+                            
+                            const state = getRemoteState(socketId);
+                            const participant = getParticipantInfo(socketId);
+                            return (
+                                <RemoteThumbnail
+                                    key={socketId}
+                                    remote={remote}
+                                    socketId={socketId}
+                                    userId={participant?.userId}
+                                    role={participant?.role || 'participant'}
+                                    isRemoteHost={isRemoteHost(socketId)}
+                                    mediaState={state}
+                                    selectedSpeakerId={selectedSpeakerId}
+                                />
+                            );
+                        })}
+                    </div>
+                </>
+            ) : (
+                // NORMAL GRID LAYOUT - No screen sharing
+                <>
+                    <div className={`video-grid ${getGridClass(visibleCount)}`}>
+                        {visibleTiles.map((tile, idx) => {
                     if (tile.kind === 'local') {
                         return (
                             <div className="video-container local-video" key="local">
@@ -190,6 +266,8 @@ export default function VideoGrid({
                     </div>
                     <button className="pager-btn" onClick={handleNext} disabled={currentPage === totalPages - 1} aria-label="Nästa sida">›</button>
                 </div>
+            )}
+                </>
             )}
         </div>
     );
@@ -260,6 +338,84 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
             )}
 
             {/* Status Icons Overlay */}
+            <div className="status-icons">
+                {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
+                {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
+                {!mediaState.video && <span className="status-icon" title="Kamera av">📷🚫</span>}
+            </div>
+
+            <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className={isVideoEnabled ? '' : 'hidden'}
+            />
+
+            {!isVideoEnabled && (
+                <div className="video-placeholder">
+                    <span>{remote.username?.[0]?.toUpperCase()}</span>
+                </div>
+            )}
+
+            <div className="user-label">
+                {remote.username}
+                {isRemoteHost && <span title="Admin"> ⭐</span>}
+                {isModerator && <span title="Moderator"> 🛡️</span>}
+            </div>
+        </div>
+    );
+}
+
+// ScreenShareVideo component for the main screen share display
+function ScreenShareVideo({ stream, username, label }) {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        if (videoRef.current && stream) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [stream]);
+
+    return (
+        <div className="screen-share-video">
+            <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="screen-video"
+            />
+            <div className="screen-share-label">{label}</div>
+        </div>
+    );
+}
+
+// RemoteThumbnail component for participant thumbnails during screen share
+function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, selectedSpeakerId }) {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        if (videoRef.current && remote.stream) {
+            videoRef.current.srcObject = remote.stream;
+        }
+    }, [remote.stream]);
+
+    // Apply selected speaker/output device if supported
+    useEffect(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        const canSetSink = typeof el.setSinkId === 'function';
+        if (canSetSink && selectedSpeakerId) {
+            el.setSinkId(selectedSpeakerId).catch(err => {
+                console.warn('setSinkId failed:', err);
+            });
+        }
+    }, [selectedSpeakerId]);
+
+    const isVideoEnabled = mediaState.video;
+    const isModerator = role === 'moderator';
+
+    return (
+        <div className="video-thumbnail">
             <div className="status-icons">
                 {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
                 {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}

@@ -6,6 +6,8 @@ import { deleteRoom, findRoomByLinkCode } from './database.js';
 const rooms = new Map();
 // Store moderators per room: roomId -> Set of userIds
 const roomModerators = new Map();
+// Store active screen sharer per room: roomId -> { socketId, username }
+const roomScreenSharers = new Map();
 
 export function setupSignaling(httpServer) {
     const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -144,7 +146,25 @@ export function setupSignaling(httpServer) {
         // Screen sharing started
         socket.on('screen-share-started', () => {
             if (socket.roomId) {
-                socket.to(socket.roomId).emit('user-screen-sharing', {
+                // Check if someone is already sharing
+                const currentSharer = roomScreenSharers.get(socket.roomId);
+                if (currentSharer && currentSharer.socketId !== socket.id) {
+                    // Someone else is already sharing, reject
+                    socket.emit('screen-share-rejected', {
+                        reason: 'already-sharing',
+                        sharerUsername: currentSharer.username
+                    });
+                    return;
+                }
+                
+                // Set this user as the active sharer
+                roomScreenSharers.set(socket.roomId, {
+                    socketId: socket.id,
+                    username: socket.username
+                });
+                
+                // Notify everyone including sender
+                io.to(socket.roomId).emit('user-screen-sharing', {
                     socketId: socket.id,
                     username: socket.username
                 });
@@ -154,7 +174,14 @@ export function setupSignaling(httpServer) {
         // Screen sharing stopped
         socket.on('screen-share-stopped', () => {
             if (socket.roomId) {
-                socket.to(socket.roomId).emit('user-stopped-screen-sharing', {
+                // Clear the active sharer
+                const currentSharer = roomScreenSharers.get(socket.roomId);
+                if (currentSharer && currentSharer.socketId === socket.id) {
+                    roomScreenSharers.delete(socket.roomId);
+                }
+                
+                // Notify everyone
+                io.to(socket.roomId).emit('user-stopped-screen-sharing', {
                     socketId: socket.id
                 });
             }
@@ -239,6 +266,16 @@ export function setupSignaling(httpServer) {
             if (socket.roomId && rooms.has(socket.roomId)) {
                 const roomParticipants = rooms.get(socket.roomId);
                 roomParticipants.delete(socket.id);
+                
+                // Clear screen sharer if this user was sharing
+                const currentSharer = roomScreenSharers.get(socket.roomId);
+                if (currentSharer && currentSharer.socketId === socket.id) {
+                    roomScreenSharers.delete(socket.roomId);
+                    // Notify others that screen sharing stopped
+                    socket.to(socket.roomId).emit('user-stopped-screen-sharing', {
+                        socketId: socket.id
+                    });
+                }
 
                 // Notify others
                 socket.to(socket.roomId).emit('user-left', {
