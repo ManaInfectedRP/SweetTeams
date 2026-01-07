@@ -266,9 +266,10 @@ export function useWebRTC(roomId, token, username) {
             
             socket.on('user-stopped-screen-sharing', ({ socketId }) => {
                 if (!mounted) return;
-                console.log(`User stopped screen sharing: ${socketId}`);
+                console.log(`📺 User stopped screen sharing: ${socketId}`);
                 setActiveScreenSharer(prev => {
                     if (prev && prev.socketId === socketId) {
+                        console.log('Clearing activeScreenSharer state');
                         return null;
                     }
                     return prev;
