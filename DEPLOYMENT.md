@@ -228,6 +228,41 @@ Detta kommer att skapa båda services automatiskt!
 - Kontrollera loggar i Render Dashboard
 - Verifiera att alla environment variables är korrekt satta
 
+### Magic Link emails skickas inte:
+**Kontrollera Render logs för specifika felmeddelanden:**
+
+1. **"EMAIL_API_KEY environment variable is not set"**
+   - Gå till Render Dashboard → backend service → Environment
+   - Lägg till `EMAIL_API_KEY` med din SendGrid API-nyckel
+   - Spara och vänta på redeploy
+
+2. **"SendGrid authentication failed" eller 401/403 error**
+   - Din SendGrid API-nyckel är ogiltig eller har gått ut
+   - Gå till SendGrid Dashboard → Settings → API Keys
+   - Skapa en ny API-nyckel med "Mail Send" permissions
+   - Uppdatera `EMAIL_API_KEY` i Render
+
+3. **"EMAIL_FROM saknas i miljövariabler"**
+   - Lägg till `EMAIL_FROM` i Render Environment Variables
+   - Exempel: `noreply@yourdomain.com`
+   - Denna e-post måste vara verifierad i SendGrid (se Steg 4 under SendGrid-konfiguration)
+
+4. **"Sender address not verified"**
+   - Gå till SendGrid → Settings → Sender Authentication
+   - Slutför "Single Sender Verification" för din `EMAIL_FROM` adress
+   - Kolla din inkorg och klicka på verifieringslänken
+
+5. **E-post hamnar i spam**
+   - Lägg till `EMAIL_FROM_NAME` i Environment Variables (t.ex. "SweetTeams")
+   - Överväg Domain Authentication i SendGrid för bättre leverans
+   - Be användare att lägga till din e-post i vitlistan
+
+**Test magic link i produktion:**
+```bash
+# Kolla backend logs i Render Dashboard
+# Du bör se: "✅ Magic link email sent to user@example.com"
+```
+
 ### Frontend kan inte ansluta till backend:
 - **Kontrollera att `VITE_API_URL` är korrekt i frontend environment variables**
 - **Gå till Render Dashboard → sweetteams → Environment → Verifiera `VITE_API_URL`**

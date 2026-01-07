@@ -22,6 +22,14 @@ export async function sendMagicLinkEmail(email, name, token) {
     
     // For production - SendGrid implementation
     try {
+        // Validate environment variables
+        if (!process.env.EMAIL_API_KEY) {
+            throw new Error('EMAIL_API_KEY environment variable is not set');
+        }
+        if (!process.env.EMAIL_FROM) {
+            throw new Error('EMAIL_FROM environment variable is not set');
+        }
+        
         const sgMail = await import('@sendgrid/mail');
         sgMail.default.setApiKey(process.env.EMAIL_API_KEY);
         
@@ -84,10 +92,25 @@ export async function sendMagicLinkEmail(email, name, token) {
         };
         
         await sgMail.default.send(msg);
-        console.log(`Magic link email sent to ${email}`);
+        console.log(`✅ Magic link email sent to ${email}`);
         return { success: true };
     } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error('Kunde inte skicka e-post. Kontrollera att SendGrid är korrekt konfigurerat.');
+        console.error('❌ Error sending email:', error);
+        
+        // More detailed error messages for debugging
+        if (error.code === 401 || error.code === 403) {
+            console.error('SendGrid authentication failed. Check EMAIL_API_KEY.');
+            throw new Error('SendGrid API-nyckel är ogiltig. Kontrollera EMAIL_API_KEY i miljövariabler.');
+        } else if (error.response?.body?.errors) {
+            const errorDetails = error.response.body.errors.map(e => e.message).join(', ');
+            console.error('SendGrid errors:', errorDetails);
+            throw new Error(`SendGrid-fel: ${errorDetails}`);
+        } else if (!process.env.EMAIL_API_KEY) {
+            throw new Error('EMAIL_API_KEY saknas i miljövariabler.');
+        } else if (!process.env.EMAIL_FROM) {
+            throw new Error('EMAIL_FROM saknas i miljövariabler.');
+        }
+        
+        throw new Error(`Kunde inte skicka e-post: ${error.message || 'Okänt fel'}`);
     }
 }
