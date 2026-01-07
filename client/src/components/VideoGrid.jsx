@@ -139,6 +139,21 @@ export default function VideoGrid({
     const isSomeoneScreenSharing = activeScreenSharer !== null;
     const isLocalScreenSharing = isSomeoneScreenSharing && activeScreenSharer.socketId === mySocketId;
     const screenSharerSocketId = activeScreenSharer?.socketId;
+    
+    // Get the screen share stream
+    const remoteScreenStream = screenSharerSocketId ? remoteStreams.get(screenSharerSocketId)?.stream : null;
+    
+    // Debug log
+    useEffect(() => {
+        if (isSomeoneScreenSharing && !isLocalScreenSharing) {
+            console.log('Remote screen share detected:', {
+                sharer: activeScreenSharer.username,
+                socketId: screenSharerSocketId,
+                hasStream: !!remoteScreenStream,
+                streamTracks: remoteScreenStream?.getTracks().map(t => `${t.kind}:${t.label || 'no-label'}`)
+            });
+        }
+    }, [isSomeoneScreenSharing, isLocalScreenSharing, remoteScreenStream, activeScreenSharer, screenSharerSocketId]);
 
     return (
         <div className="video-grid-wrapper" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -156,7 +171,7 @@ export default function VideoGrid({
                         ) : (
                             // Show remote screen stream
                             <ScreenShareVideo
-                                stream={remoteStreams.get(screenSharerSocketId)?.stream}
+                                stream={remoteScreenStream}
                                 username={activeScreenSharer.username}
                                 label={`${activeScreenSharer.username} delar skärm`}
                             />
@@ -386,11 +401,10 @@ function ScreenShareVideo({ stream, username, label }) {
     useEffect(() => {
         if (videoRef.current && stream) {
             console.log('Setting srcObject for main screen share, tracks:', stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.label || 'no-label'}`));
-            videoRef.current.srcObject = stream;
-            // Force the video to load and play
-            videoRef.current.load();
+            const videoElement = videoRef.current;
+            videoElement.srcObject = stream;
         }
-    }, [stream]);
+    }, [stream, stream?._updateTime]);
 
     return (
         <div className="screen-share-video">
