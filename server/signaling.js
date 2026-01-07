@@ -258,6 +258,17 @@ export function setupSignaling(httpServer) {
                 enabled
             });
         });
+        
+        // Handle track replacements (for screen sharing transitions)
+        socket.on('track-replaced', ({ trackType }) => {
+            if (socket.roomId) {
+                // Notify others in the room that this user replaced a track
+                socket.to(socket.roomId).emit('track-replaced', {
+                    socketId: socket.id,
+                    trackType
+                });
+            }
+        });
 
         // Handle disconnect
         socket.on('disconnect', () => {

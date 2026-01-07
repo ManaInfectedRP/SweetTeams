@@ -222,6 +222,30 @@ export function useWebRTC(roomId, token, username) {
                 setActiveScreenSharer({ socketId, username });
             });
             
+            socket.on('track-replaced', ({ socketId: fromSocketId, trackType }) => {
+                if (!mounted) return;
+                console.log(`🔄 Track replaced signal from ${fromSocketId}, type: ${trackType}`);
+                // Force refresh the remote stream for this peer
+                const peer = peersRef.current.get(fromSocketId);
+                if (peer && peer._pc) {
+                    const receivers = peer._pc.getReceivers();
+                    const tracks = receivers.map(r => r.track).filter(Boolean);
+                    if (tracks.length > 0) {
+                        const updatedStream = new MediaStream(tracks);
+                        setRemoteStreams(prev => {
+                            const existing = prev.get(fromSocketId);
+                            if (existing) {
+                                console.log('✅ Refreshing stream for', fromSocketId, 'tracks:', tracks.map(t => t.kind));
+                                const newMap = new Map(prev);
+                                newMap.set(fromSocketId, { stream: updatedStream, username: existing.username });
+                                return newMap;
+                            }
+                            return prev;
+                        });
+                    }
+                }
+            });
+            
             socket.on('user-stopped-screen-sharing', ({ socketId }) => {
                 if (!mounted) return;
                 console.log(`User stopped screen sharing: ${socketId}`);
@@ -643,7 +667,7 @@ export function useWebRTC(roomId, token, username) {
                     socketRef.current.emit('screen-share-stopped');
                 }
                 
-                // Restore regular camera track to peers using removeTrack + addTrack
+                // Restore regular camera track to peers using replaceTrack
                 if (localStreamRef.current) {
                     const videoTrack = localStreamRef.current.getVideoTracks()[0];
                     console.log('Restoring camera track:', videoTrack);
@@ -653,11 +677,15 @@ export function useWebRTC(roomId, token, username) {
                             try {
                                 const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
                                 if (sender) {
-                                    // Remove the old screen track
-                                    peer._pc.removeTrack(sender);
-                                    // Add the camera track back
-                                    peer._pc.addTrack(videoTrack, localStreamRef.current);
-                                    console.log('✅ Replaced screen track with camera track via remove+add for peer');
+                                    sender.replaceTrack(videoTrack).then(() => {
+                                        console.log('✅ Replaced screen track with camera track');
+                                        // Signal to remote peers that track was replaced
+                                        if (socketRef.current) {
+                                            socketRef.current.emit('track-replaced', { trackType: 'video' });
+                                        }
+                                    }).catch(err => {
+                                        console.error('Failed to restore video track for peer:', err);
+                                    });
                                 }
                             } catch (err) {
                                 console.error('Error restoring video track for peer:', err);
@@ -684,16 +712,20 @@ export function useWebRTC(roomId, token, username) {
                 
                 const screenTrack = stream.getVideoTracks()[0];
                 
-                // Replace video track in all peer connections using removeTrack + addTrack
+                // Replace video track in all peer connections using replaceTrack
                 peersRef.current.forEach(peer => {
                     try {
                         const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
                         if (sender) {
-                            // Remove the camera track
-                            peer._pc.removeTrack(sender);
-                            // Add the screen track
-                            peer._pc.addTrack(screenTrack, screenStreamRef.current);
-                            console.log('✅ Replaced camera track with screen track via remove+add for peer');
+                            sender.replaceTrack(screenTrack).then(() => {
+                                console.log('✅ Replaced camera track with screen track');
+                                // Signal to remote peers that track was replaced
+                                if (socketRef.current) {
+                                    socketRef.current.emit('track-replaced', { trackType: 'video' });
+                                }
+                            }).catch(err => {
+                                console.error('Failed to replace with screen track for peer:', err);
+                            });
                         }
                     } catch (err) {
                         console.error('Error replacing with screen track for peer:', err);
@@ -717,7 +749,7 @@ export function useWebRTC(roomId, token, username) {
                         socketRef.current.emit('screen-share-stopped');
                     }
                     
-                    // Restore regular camera track to peers using removeTrack + addTrack
+                    // Restore regular camera track to peers using replaceTrack
                     if (localStreamRef.current) {
                         const videoTrack = localStreamRef.current.getVideoTracks()[0];
                         if (videoTrack && videoTrack.readyState === 'live') {
@@ -725,11 +757,15 @@ export function useWebRTC(roomId, token, username) {
                                 try {
                                     const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
                                     if (sender) {
-                                        // Remove screen track
-                                        peer._pc.removeTrack(sender);
-                                        // Add camera track back
-                                        peer._pc.addTrack(videoTrack, localStreamRef.current);
-                                        console.log('✅ Restored camera track after browser stop via remove+add');
+                                        sender.replaceTrack(videoTrack).then(() => {
+                                            console.log('✅ Restored camera track after browser stop');
+                                            // Signal to remote peers
+                                            if (socketRef.current) {
+                                                socketRef.current.emit('track-replaced', { trackType: 'video' });
+                                            }
+                                        }).catch(err => {
+                                            console.error('Failed to restore video track after browser stop:', err);
+                                        });
                                     }
                                 } catch (err) {
                                     console.error('Error restoring track after browser stop:', err);
