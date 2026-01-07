@@ -385,6 +385,7 @@ function ScreenShareVideo({ stream, username, label }) {
 
     useEffect(() => {
         if (videoRef.current && stream) {
+            console.log('Setting srcObject for main screen share, tracks:', stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.label}`));
             videoRef.current.srcObject = stream;
         }
     }, [stream]);

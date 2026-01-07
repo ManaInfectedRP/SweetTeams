@@ -225,36 +225,41 @@ export function useWebRTC(roomId, token, username) {
             socket.on('track-replaced', ({ socketId: fromSocketId, trackType }) => {
                 if (!mounted) return;
                 console.log(`🔄 Track replaced signal from ${fromSocketId}, type: ${trackType}`);
-                // Force refresh the remote stream for this peer
-                const peer = peersRef.current.get(fromSocketId);
-                if (peer && peer._pc) {
-                    console.log('Found peer connection for', fromSocketId);
-                    const receivers = peer._pc.getReceivers();
-                    console.log('Receivers:', receivers.length);
-                    const tracks = receivers.map(r => r.track).filter(Boolean);
-                    console.log('Tracks from receivers:', tracks.map(t => `${t.kind}:${t.id.substring(0,8)}:${t.readyState}`));
-                    
-                    if (tracks.length > 0) {
-                        const updatedStream = new MediaStream(tracks);
-                        console.log('Created new MediaStream with tracks:', updatedStream.getTracks().map(t => `${t.kind}:${t.readyState}`));
+                
+                // Add a small delay to ensure replaceTrack has completed on the sender side
+                setTimeout(() => {
+                    // Force refresh the remote stream for this peer
+                    const peer = peersRef.current.get(fromSocketId);
+                    if (peer && peer._pc) {
+                        console.log('Found peer connection for', fromSocketId);
+                        const receivers = peer._pc.getReceivers();
+                        console.log('Receivers:', receivers.length);
+                        const tracks = receivers.map(r => r.track).filter(Boolean);
+                        console.log('Tracks from receivers:', tracks.map(t => `${t.kind}:${t.id.substring(0,8)}:${t.readyState}:${t.label}`));
                         
-                        setRemoteStreams(prev => {
-                            const existing = prev.get(fromSocketId);
-                            if (existing) {
-                                console.log('✅ Refreshing stream for', fromSocketId, 'tracks:', tracks.map(t => t.kind));
-                                const newMap = new Map(prev);
-                                newMap.set(fromSocketId, { stream: updatedStream, username: existing.username });
-                                return newMap;
-                            }
-                            console.warn('No existing stream found for', fromSocketId);
-                            return prev;
-                        });
+                        if (tracks.length > 0) {
+                            const updatedStream = new MediaStream(tracks);
+                            console.log('Created new MediaStream with tracks:', updatedStream.getTracks().map(t => `${t.kind}:${t.readyState}`));
+                            
+                            setRemoteStreams(prev => {
+                                const existing = prev.get(fromSocketId);
+                                if (existing) {
+                                    console.log('✅ Refreshing stream for', fromSocketId, 'tracks:', tracks.map(t => `${t.kind}:${t.label}`));
+                                    const newMap = new Map(prev);
+                                    newMap.set(fromSocketId, { stream: updatedStream, username: existing.username });
+                                    return newMap;
+                                } else {
+                                    console.warn('No existing stream found for', fromSocketId);
+                                    return prev;
+                                }
+                            });
+                        } else {
+                            console.warn('No tracks found for peer', fromSocketId);
+                        }
                     } else {
-                        console.warn('No tracks found for peer', fromSocketId);
+                        console.warn('No peer connection found for', fromSocketId);
                     }
-                } else {
-                    console.warn('No peer connection found for', fromSocketId);
-                }
+                }, 200); // 200ms delay to ensure track replacement completes
             });
             
             socket.on('user-stopped-screen-sharing', ({ socketId }) => {
