@@ -372,18 +372,30 @@ export function useWebRTC(roomId, token, username) {
         // Listen for track events to handle track replacements (e.g., screen sharing)
         // This is crucial for updating when remote peer switches between camera and screen share
         let lastTrackUpdate = 0;
+        let lastStreamTrackIds = '';
+        
         peer._pc.ontrack = (event) => {
             const now = Date.now();
-            // Debounce updates to prevent spam (max once per 500ms)
-            if (now - lastTrackUpdate < 500) {
+            // Debounce updates to prevent spam (max once per 1000ms)
+            if (now - lastTrackUpdate < 1000) {
                 console.log('⏭️ Skipping ontrack update (debounced)');
                 return;
             }
-            lastTrackUpdate = now;
             
-            console.log('🔄 Track event from peer:', socketId, 'kind:', event.track.kind, 'id:', event.track.id.substring(0,8));
             if (event.streams && event.streams[0]) {
                 const stream = event.streams[0];
+                const currentTrackIds = stream.getTracks().map(t => `${t.kind}:${t.id}`).sort().join(',');
+                
+                // Check if tracks are actually different
+                if (currentTrackIds === lastStreamTrackIds) {
+                    console.log('⏭️ Skipping ontrack update (same tracks)');
+                    return;
+                }
+                
+                lastTrackUpdate = now;
+                lastStreamTrackIds = currentTrackIds;
+                
+                console.log('🔄 Track event from peer:', socketId, 'kind:', event.track.kind, 'id:', event.track.id.substring(0,8));
                 console.log('Stream tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
                 
                 // Force update by creating a new stream object with current tracks
@@ -430,46 +442,7 @@ export function useWebRTC(roomId, token, username) {
         // Initial track monitoring
         setTimeout(monitorTracks, 1000);
         
-        // Store last known track IDs to prevent spam
-        let lastTrackIds = '';
-        
-        // Polling mechanism to catch track changes that don't trigger events
-        const trackCheckInterval = setInterval(() => {
-            const receivers = peer._pc.getReceivers();
-            const tracks = receivers.map(r => r.track).filter(Boolean);
-            
-            if (tracks.length > 0) {
-                // Check if tracks have changed by comparing track IDs
-                const trackIds = tracks.map(t => `${t.kind}:${t.id}`).sort().join(',');
-                
-                if (trackIds !== lastTrackIds && lastTrackIds !== '') {
-                    console.log('🔄 Detected track change via polling for', socketId);
-                    console.log('Old tracks:', lastTrackIds);
-                    console.log('New tracks:', trackIds);
-                    
-                    // Create updated stream with current tracks
-                    const updatedStream = new MediaStream(tracks);
-                    setRemoteStreams(prev => {
-                        const existing = prev.get(socketId);
-                        if (existing) {
-                            const newMap = new Map(prev);
-                            newMap.set(socketId, { stream: updatedStream, username: existing.username });
-                            return newMap;
-                        }
-                        return prev;
-                    });
-                }
-                
-                lastTrackIds = trackIds;
-            }
-        }, 3000);
-        
-        // Cleanup interval when peer is destroyed
-        const originalDestroy = peer.destroy.bind(peer);
-        peer.destroy = () => {
-            clearInterval(trackCheckInterval);
-            originalDestroy();
-        };
+        // Note: Polling removed since removeTrack + addTrack triggers proper ontrack events
 
         peer.on('error', (err) => {
             console.error('Peer error:', err);
