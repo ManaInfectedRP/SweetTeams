@@ -155,30 +155,33 @@ export default function VideoGrid({
                     </div>
                     
                     <div className="screen-share-thumbnails">
-                        {/* Local video thumbnail */}
-                        <div className="video-thumbnail local-thumbnail" key="local">
-                            <video
-                                ref={localVideoRef}
-                                autoPlay
-                                muted
-                                playsInline
-                                className={isCameraOn ? '' : 'hidden'}
-                            />
-                            {!isCameraOn && (
-                                <div className="video-placeholder">
-                                    <span>{username?.[0]?.toUpperCase()}</span>
+                        {/* Show thumbnails for participants NOT sharing screen */}
+                        {/* Local video thumbnail - only if we're NOT the one sharing */}
+                        {!isLocalScreenSharing && (
+                            <div className="video-thumbnail local-thumbnail" key="local">
+                                <video
+                                    ref={localVideoRef}
+                                    autoPlay
+                                    muted
+                                    playsInline
+                                    className={isCameraOn ? '' : 'hidden'}
+                                />
+                                {!isCameraOn && (
+                                    <div className="video-placeholder">
+                                        <span>{username?.[0]?.toUpperCase()}</span>
+                                    </div>
+                                )}
+                                <div className="user-label">
+                                    {username}
+                                    {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
                                 </div>
-                            )}
-                            <div className="user-label">
-                                {username}
-                                {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
                             </div>
-                        </div>
+                        )}
                         
-                        {/* Remote video thumbnails (excluding the one sharing screen if remote) */}
+                        {/* Remote video thumbnails - skip the one sharing screen */}
                         {Array.from(remoteStreams, ([socketId, remote]) => {
-                            // Skip the remote that is sharing screen
-                            if (!isLocalScreenSharing && socketId === screenSharerSocketId) {
+                            // Skip the remote that is sharing screen (their track is now screen share)
+                            if (socketId === screenSharerSocketId) {
                                 return null;
                             }
                             

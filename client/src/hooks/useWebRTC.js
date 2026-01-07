@@ -365,23 +365,27 @@ export function useWebRTC(roomId, token, username) {
         });
 
         peer.on('stream', (stream) => {
-            console.log('Received stream from peer:', socketId, 'tracks:', stream.getTracks().length);
+            console.log('Received stream from peer:', socketId, 'tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
             setRemoteStreams(prev => new Map(prev).set(socketId, { stream, username: peerUsername }));
         });
         
         // Listen for track events to handle track replacements (e.g., screen sharing)
-        peer.on('track', (track, stream) => {
-            console.log('Track event from peer:', socketId, 'track kind:', track.kind, 'stream id:', stream.id);
-            // Update the remote stream when tracks change
-            setRemoteStreams(prev => {
-                const existing = prev.get(socketId);
-                if (existing) {
-                    // Update with the new stream
-                    return new Map(prev).set(socketId, { stream, username: existing.username });
-                }
-                return prev;
-            });
-        });
+        peer._pc.ontrack = (event) => {
+            console.log('Track event from peer:', socketId, 'track kind:', event.track.kind, 'streams:', event.streams.length);
+            if (event.streams && event.streams[0]) {
+                const stream = event.streams[0];
+                console.log('Updating remote stream with new tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
+                // Force update the remote stream when tracks change
+                setRemoteStreams(prev => {
+                    const existing = prev.get(socketId);
+                    if (existing) {
+                        // Create new reference to trigger re-render
+                        return new Map(prev).set(socketId, { stream: stream, username: existing.username });
+                    }
+                    return new Map(prev).set(socketId, { stream: stream, username: peerUsername });
+                });
+            }
+        };
 
         peer.on('error', (err) => {
             console.error('Peer error:', err);
@@ -567,12 +571,20 @@ export function useWebRTC(roomId, token, username) {
         if (isScreenSharing) {
             // Stop screen sharing
             if (screenStreamRef.current) {
+                const screenTrack = screenStreamRef.current.getVideoTracks()[0];
+                if (screenTrack) {
+                    screenTrack.onended = null; // Remove the event listener first
+                }
+                
                 screenStreamRef.current.getTracks().forEach(track => track.stop());
                 screenStreamRef.current = null;
                 setScreenStream(null);
                 setIsScreenSharing(false);
                 setActiveScreenSharer(null);
-                socketRef.current.emit('screen-share-stopped');
+                
+                if (socketRef.current) {
+                    socketRef.current.emit('screen-share-stopped');
+                }
                 
                 // Restore regular camera track to peers
                 if (localStreamRef.current) {
@@ -607,7 +619,9 @@ export function useWebRTC(roomId, token, username) {
                 
                 // Set ourselves as the active sharer optimistically
                 // (will be confirmed or rejected by server)
-                socketRef.current.emit('screen-share-started');
+                if (socketRef.current) {
+                    socketRef.current.emit('screen-share-started');
+                }
                 
                 const screenTrack = stream.getVideoTracks()[0];
                 
@@ -626,9 +640,39 @@ export function useWebRTC(roomId, token, username) {
                 });
                 
                 // Handle when user stops sharing from browser UI
+                // Use a more reliable approach that doesn't depend on state closure
                 screenTrack.onended = () => {
-                    if (isScreenSharing) {
-                        toggleScreenShare();
+                    console.log('Screen track ended (user stopped from browser)');
+                    // Clean up the screen stream
+                    if (screenStreamRef.current) {
+                        screenStreamRef.current.getTracks().forEach(track => track.stop());
+                        screenStreamRef.current = null;
+                    }
+                    setScreenStream(null);
+                    setIsScreenSharing(false);
+                    setActiveScreenSharer(null);
+                    
+                    if (socketRef.current) {
+                        socketRef.current.emit('screen-share-stopped');
+                    }
+                    
+                    // Restore regular camera track to peers
+                    if (localStreamRef.current) {
+                        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                        if (videoTrack && videoTrack.readyState === 'live') {
+                            peersRef.current.forEach(peer => {
+                                try {
+                                    const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
+                                    if (sender) {
+                                        sender.replaceTrack(videoTrack).catch(err => {
+                                            console.error('Failed to restore video track after browser stop:', err);
+                                        });
+                                    }
+                                } catch (err) {
+                                    console.error('Error restoring track after browser stop:', err);
+                                }
+                            });
+                        }
                     }
                 };
             } catch (err) {
