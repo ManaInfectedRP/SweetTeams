@@ -24,6 +24,11 @@ export default function VideoGrid({
     const [currentPage, setCurrentPage] = useState(0);
     const pageSize = 6;
 
+    // Check if someone is sharing screen (moved up before useEffects that use it)
+    const isSomeoneScreenSharing = activeScreenSharer !== null;
+    const isLocalScreenSharing = isSomeoneScreenSharing && activeScreenSharer?.socketId === mySocketId;
+    const screenSharerSocketId = activeScreenSharer?.socketId;
+
     useEffect(() => {
         if (localVideoRef.current) {
             // Prioritize screen stream if available
@@ -144,11 +149,6 @@ export default function VideoGrid({
         touchStartX.current = null;
         touchStartY.current = null;
     };
-    
-    // Check if someone is sharing screen
-    const isSomeoneScreenSharing = activeScreenSharer !== null;
-    const isLocalScreenSharing = isSomeoneScreenSharing && activeScreenSharer.socketId === mySocketId;
-    const screenSharerSocketId = activeScreenSharer?.socketId;
     
     // Get the screen share stream
     const remoteScreenStream = screenSharerSocketId ? remoteStreams.get(screenSharerSocketId)?.stream : null;
