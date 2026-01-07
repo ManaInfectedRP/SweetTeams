@@ -6,9 +6,10 @@ En Microsoft Teams-liknande videokonferensapplikation med stöd för 50+ deltaga
 
 ## ✨ Funktioner
 
-- 🔐 **Passwordless Authentication** - Magic links via e-post (ingen registrering behövs!)
-- 🎬 **Videomöten** - WebRTC-baserade videomöten
+- 🔐 **Passwordless Authentication** - Magic links via e-post, ingen registrering behövs!
+- 🎬 **Videomöten** - WebRTC-baserade videomöten med stöd för 50+ deltagare
 - 📱 **Multi-plattform** - Webb, PWA (installera på mobil), Windows .exe
+- 💌 **E-post Magic Links** - SendGrid-integration för säker passwordless inloggning
 - 🔢 **Gå med via kod** - Ange rumskod för att direkt hoppa in i möte
 - 🎥 **Enhetskontroll** - Välj kamera, mikrofon och högtalare
 - 📷 **Kamerabyte** - Byt mellan fram- och bakkamera på mobil
@@ -28,6 +29,7 @@ En Microsoft Teams-liknande videokonferensapplikation med stöd för 50+ deltaga
 - Socket.io (WebRTC signaling)
 - SQLite (databas)
 - JWT (autentisering)
+- SendGrid (passwordless email authentication)
 
 ### Frontend
 - React 18, Vite
@@ -158,63 +160,153 @@ SweetTeams/
 └── DEPLOYMENT.md          # Deployment guide
 ```
 
-## 🌍 Deployment
+## 🌍 Deployment till Produktion
 
-För att deploya SweetTeams till gratis hosting (Render.com), se den detaljerade guiden:
+För att deploya SweetTeams till gratis hosting (Render.com), se våra detaljerade guider:
 
-👉 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Steg-för-steg guide för production deployment
+📚 **Deployment Dokumentation:**
 
-👉 **[SENDGRID_SETUP.md](SENDGRID_SETUP.md)** - 5-minuters guide för e-post (magic links)
+👉 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Komplett steg-för-steg guide
+- Render.com setup (gratis tier)
+- Frontend + Backend deployment
+- Environment variables konfiguration
+- CORS och SSL setup
+- Felsökning för vanliga problem
 
-👉 **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Snabb checklista före deploy
+👉 **[SENDGRID_SETUP.md](SENDGRID_SETUP.md)** - 5-minuters email setup
+- Skapa gratis SendGrid-konto
+- API-nyckel konfiguration
+- Avsändare-verifiering (Single Sender)
+- Render environment variables
 
-Guiden täcker:
-- ✅ Deployment till Render.com (gratis tier)
-- ✅ Frontend (React) + Backend (Node.js) + SQLite
-- ✅ SendGrid email setup för passwordless authentication
-- ✅ Environment variables konfiguration
-- ✅ Logga in (Passwordless)
+👉 **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Snabb checklista
+- Pre-deployment checklist
+- Environment variables översikt
+- Post-deployment tester
+
+👉 **[PASSWORDLESS_AUTH.md](PASSWORDLESS_AUTH.md)** - Teknisk dokumentation
+- System arkitektur
+- Databas schema
+- API endpoints
+- Säkerhet och migration
+
+**Vad som ingår:**
+- ✅ Gratis hosting på Render.com
+- ✅ SendGrid email (100 gratis/dag)
+- ✅ SQLite databas
+- ✅ Automatisk HTTPS
+- ✅ Automatisk redeploy vid git push
+- ✅ WebRTC peer-to-peer video
+
+## 🔐 Passwordless Authentication
+**magic links** istället för lösenord - enklare och säkrare!
+
+### Hur det fungerar:
+
+**Development (lokal utveckling):**
+1. Ange namn + e-post på login-sidan
+2. Magic link skrivs ut i **serverns konsol**
+3. Kopiera länken och öppna i webbläsaren
+4. Du loggas in automatiskt!
+
+**Production (Render.com):**
+1. Ange namn + e-post på login-sidan  
+2. E-post skickas via **SendGrid** (gratis 100/dag)
+3. Kolla din inkorg (och spam-mapp!)
+4. Klicka på länken - du loggas in automatiskt!
+
+### Setup för produktion:
+
+**SendGrid konfiguration (5 minuter):**
+1. Skapa gratis SendGrid-konto på [sendgrid.com/free](https://sendgrid.com/free)
+2. Skapa API-nyckel med "Mail Send" permissions
+3. Verifiera din avsändare-email (Single Sender Verification)
+4. Lägg till i Render Environment Variables:
+   - `EMAIL_API_KEY` = Din SendGrid API-nyckel
+   - `EMAIL_FROM` = Din verifierade e-post
+   - `EMAIL_FROM_NAME` = "SweetTeams" (valfritt)
+
+👉 **[SENDGRID_SETUP.md](SENDGRID_SETUP.md)** - Detaljerad guide med screenshots  
+👉 **[PASSWORDLESS_AUTH.md](PASSWORDLESS_AUTH.md)** - Teknisk dokumentation
+
+**Fördelar:**
+- ✅ Inga lösenord att komma ihåg eller hantera
+- ✅ Ingen separat registrering behövs
+- ✅ Säkrare - magic links utgår efter 15 minuter
+- ✅ Enkelt för användare - bara ange e-post!
+
+## 📝 Användarguide
+
+### Logga in (Passwordless)
 1. Gå till login-sidan
 2. Ange ditt **namn och e-post**
 3. Klicka "Skicka inloggningslänk"
-4. **Kolla din inkorg** för magic link (kontrollera även spam)
-5. Klicka på länken - du loggas in automatiskt!
-6. Kontot skapas automatiskt vid första inloggningen
+4. **Utveckling:** Kolla serverns konsol för länken
+5. **Produktion:** Kolla din e-post inkorg (och spam-mapp)
+6. Klicka på länken - du loggas in automatiskt!
+7. **Kontot skapas automatiskt** vid första inloggningen
 
 ### Skapa rum
-1. Logga in (se ovan)ps
-
-## 🔐 Passwordless Authentication
-
-SweetTeams använder magic links istället för lösenord:
-1. Användare anger **namn + e-post**
-2. Ett **magic link skickas via e-post**
-3. Länken skapar kontot automatiskt och loggar in
-4. **Ingen registrering eller lösenord behövs!**
-
-**Development:** Magic links skrivs ut i serverns konsol  
-**Production:** E-post skickas via SendGrid (gratis 100/dag)
-
-Se [PASSWORDLESS_AUTH.md](PASSWORDLESS_AUTH.md) för teknisk dokumentation.
-
-## 📝 Användning
-
-### Skapa rum
-1. Logga in/registrera
-2. Klicka "Skapa nytt rum"
-3. Ange ett namn
+1. Efter inloggning, klicka "Skapa nytt rum"
+2. Ange ett rumsnamn
+3. Dela länken eller rumskoden med andra deltagare
 4. Dela länken eller rumskoden med andra
 
 ### Gå med i rum
 - **Via dashboard**: Klicka på ett rum i listan
 - **Via kod**: Ange rumskoden i "Gå med i Rum"-fältet
 - **Via länk**: Öppna delad länk direkt
+**Autentisering:**
+- 🔐 Passwordless authentication med magic links
+- 🔑 JWT tokens för sessionshantering (7 dagars giltighet)
+- ⏱️ Magic links utgår efter 15 minuter
+- 🔒 Kryptografiskt säkra tokens (32 bytes random)
+- 🚫 Magic links kan endast användas en gång
 
-### I rummet
-- 📹 **Kamera on/off** - Slå av/på din kamera
-- 🎤 **Mikrofon on/off** - Slå av/på din mikrofon
-- 🔄 **Byt kamera** - Växla mellan fram/bakkamera (mobil)
-- 🖥️ **Skärmdelning** - Dela din skärm
+### Lokal Utveckling
+
+**Problem:** Magic link inte synlig i konsolen
+- Kontrollera att `NODE_ENV` INTE är satt till `production`
+- Servern måste köras med `npm run dev` eller `npm start`
+- Länken visas i terminalen där backend körs
+
+**Problem:** Kan inte ansluta från mobil
+- Kontrollera att både dator och mobil är på samma WiFi
+- Acceptera säkerhetsvarningen för self-signed certificate
+- Använd IP-adressen som visas i terminalen (inte localhost)
+
+**Problem:** Ingen video/ljud
+- Ge webbläsaren behörighet till kamera och mikrofon
+- Kontrollera att rätt enheter är valda i ⚙️ Inställningar
+- Testa i en annan webbläsare (Chrome/Edge rekommenderas)
+
+**Problem:** Electron .exe startar inte
+- Se till att frontend är byggd först: `cd client && npm run build`
+- För dev-läge: Kör backend och frontend först, sedan `npm run start:dev`
+
+### Produktion (Render.com)
+
+**Problem:** Magic link emails skickas inte
+- Kolla Render logs för felmeddelanden
+- Besök: `https://your-backend.onrender.com/api/auth/email-config-check`
+- Verifiera att `EMAIL_API_KEY`, `EMAIL_FROM`, `CLIENT_URL` är satta
+- Kontrollera att avsändaren är verifierad i SendGrid
+- Se [DEPLOYMENT.md](DEPLOYMENT.md) felsökningssektion
+
+**Problem:** "SendGrid API-nyckel är ogiltig"
+- `EMAIL_FROM` måste matcha din verifierade e-post i SendGrid
+- Skapa ny API-nyckel i SendGrid med "Mail Send" permissions
+- Uppdatera `EMAIL_API_KEY` i Render Environment Variables
+
+**Problem:** E-post hamnar i spam
+- Lägg till `EMAIL_FROM_NAME` i Render Environment
+- Överväg Domain Authentication i SendGrid
+- Be användare lägga till din e-post i vitlistan
+
+**Problem:** Frontend kan inte ansluta till backend
+- Kontrollera att `VITE_API_URL` är korrekt i Render
+- Verifiera `CLIENT_URL` i backend Environment Variables
+- Gör "Clear build cache & deploy" i Render Dashboard
 - ⚙️ **Inställningar** - Välj kamera, mikrofon och högtalare
 - 💬 **Chat** - Skicka meddelanden och se deltagare
 - ⋮ **Admin-meny** - Hantera deltagare (endast ägare ⭐)
