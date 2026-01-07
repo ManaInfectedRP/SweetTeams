@@ -790,7 +790,7 @@ export function useWebRTC(roomId, token, username) {
                 
                 // Handle when user stops sharing from browser UI
                 // Use a more reliable approach that doesn't depend on state closure
-                screenTrack.onended = () => {
+                screenTrack.onended = async () => {
                     console.log('Screen track ended (user stopped from browser)');
                     // Clean up the screen stream
                     if (screenStreamRef.current) {
