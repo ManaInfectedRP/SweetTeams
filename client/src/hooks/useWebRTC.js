@@ -715,16 +715,15 @@ export function useWebRTC(roomId, token, username) {
                                 videoTrack = newVideoTrack;
                                 setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
                                 setIsCameraOn(true);
-                                
-                                // Wait a bit for the stream to be ready
-                                await new Promise(resolve => setTimeout(resolve, 500));
                             }
                         } catch (err) {
                             console.error('Failed to get real camera:', err);
                         }
                     }
                     
-                    if (videoTrack && videoTrack.readyState === 'live') {
+                    // Wait a bit for the stream to be ready before replacing tracks
+                    setTimeout(() => {
+                        if (videoTrack && videoTrack.readyState === 'live') {
                         // Enable the track if it's disabled
                         videoTrack.enabled = true;
                         
@@ -747,9 +746,10 @@ export function useWebRTC(roomId, token, username) {
                                 console.error('Error restoring video track for peer:', err);
                             }
                         });
-                    } else {
-                        console.warn('Video track is not available or not live, track state:', videoTrack?.readyState);
-                    }
+                        } else {
+                            console.warn('Video track is not available or not live, track state:', videoTrack?.readyState);
+                        }
+                    }, 500);
                 }
             }
         } else {
@@ -790,7 +790,7 @@ export function useWebRTC(roomId, token, username) {
                 
                 // Handle when user stops sharing from browser UI
                 // Use a more reliable approach that doesn't depend on state closure
-                screenTrack.onended = async () => {
+                screenTrack.onended = () => {
                     console.log('Screen track ended (user stopped from browser)');
                     // Clean up the screen stream
                     if (screenStreamRef.current) {
@@ -823,16 +823,15 @@ export function useWebRTC(roomId, token, username) {
                                     videoTrack = newVideoTrack;
                                     setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
                                     setIsCameraOn(true);
-                                    
-                                    // Wait a bit for the stream to be ready
-                                    await new Promise(resolve => setTimeout(resolve, 500));
                                 }
                             } catch (err) {
                                 console.error('Failed to get real camera in onended:', err);
                             }
                         }
                         
-                        if (videoTrack && videoTrack.readyState === 'live') {
+                        // Wait a bit for the stream to be ready before replacing tracks
+                        setTimeout(() => {
+                            if (videoTrack && videoTrack.readyState === 'live') {
                             videoTrack.enabled = true;
                             peersRef.current.forEach(peer => {
                                 try {
@@ -852,7 +851,8 @@ export function useWebRTC(roomId, token, username) {
                                     console.error('Error restoring track after browser stop:', err);
                                 }
                             });
-                        }
+                            }
+                        }, 500);
                     }
                 };
             } catch (err) {
