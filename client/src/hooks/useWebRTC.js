@@ -239,6 +239,8 @@ export function useWebRTC(roomId, token, username) {
                         
                         if (tracks.length > 0) {
                             const updatedStream = new MediaStream(tracks);
+                            // Add a timestamp to force React to detect the change
+                            updatedStream._updateTime = Date.now();
                             console.log('Created new MediaStream with tracks:', updatedStream.getTracks().map(t => `${t.kind}:${t.readyState}`));
                             
                             setRemoteStreams(prev => {
