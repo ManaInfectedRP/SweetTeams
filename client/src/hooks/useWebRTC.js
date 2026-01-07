@@ -688,7 +688,7 @@ export function useWebRTC(roomId, token, username) {
                 
                 // Restore regular camera track to peers using replaceTrack
                 if (localStreamRef.current) {
-                    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                    let videoTrack = localStreamRef.current.getVideoTracks()[0];
                     console.log('Restoring camera track:', videoTrack);
                     console.log('Track details:', {
                         id: videoTrack?.id,
@@ -696,12 +696,37 @@ export function useWebRTC(roomId, token, username) {
                         label: videoTrack?.label,
                         readyState: videoTrack?.readyState,
                         enabled: videoTrack?.enabled,
-                        muted: videoTrack?.muted
+                        muted: videoTrack?.muted,
+                        constructor: videoTrack?.constructor.name
                     });
+                    
+                    // Check if it's a dummy canvas track and try to get real camera
+                    if (videoTrack && videoTrack.constructor.name === 'CanvasCaptureMediaStreamTrack') {
+                        console.warn('⚠️ Current video track is a dummy canvas track, trying to get real camera...');
+                        try {
+                            const newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                            const newVideoTrack = newStream.getVideoTracks()[0];
+                            if (newVideoTrack) {
+                                console.log('✅ Got real camera track:', newVideoTrack.label);
+                                // Replace the dummy track with real one
+                                localStreamRef.current.removeTrack(videoTrack);
+                                videoTrack.stop();
+                                localStreamRef.current.addTrack(newVideoTrack);
+                                videoTrack = newVideoTrack;
+                                setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                                setIsCameraOn(true);
+                                
+                                // Wait a bit for the stream to be ready
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                        } catch (err) {
+                            console.error('Failed to get real camera:', err);
+                        }
+                    }
                     
                     if (videoTrack && videoTrack.readyState === 'live') {
                         // Enable the track if it's disabled
-                        videoTrack.enabled = isCameraOn;
+                        videoTrack.enabled = true;
                         
                         peersRef.current.forEach(peer => {
                             try {
@@ -782,8 +807,33 @@ export function useWebRTC(roomId, token, username) {
                     
                     // Restore regular camera track to peers using replaceTrack
                     if (localStreamRef.current) {
-                        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                        let videoTrack = localStreamRef.current.getVideoTracks()[0];
+                        
+                        // Check if it's a dummy canvas track and try to get real camera
+                        if (videoTrack && videoTrack.constructor.name === 'CanvasCaptureMediaStreamTrack') {
+                            console.warn('⚠️ Dummy canvas track detected in onended, trying to get real camera...');
+                            try {
+                                const newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                                const newVideoTrack = newStream.getVideoTracks()[0];
+                                if (newVideoTrack) {
+                                    console.log('✅ Got real camera track:', newVideoTrack.label);
+                                    localStreamRef.current.removeTrack(videoTrack);
+                                    videoTrack.stop();
+                                    localStreamRef.current.addTrack(newVideoTrack);
+                                    videoTrack = newVideoTrack;
+                                    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                                    setIsCameraOn(true);
+                                    
+                                    // Wait a bit for the stream to be ready
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                }
+                            } catch (err) {
+                                console.error('Failed to get real camera in onended:', err);
+                            }
+                        }
+                        
                         if (videoTrack && videoTrack.readyState === 'live') {
+                            videoTrack.enabled = true;
                             peersRef.current.forEach(peer => {
                                 try {
                                     const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');

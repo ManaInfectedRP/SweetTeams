@@ -28,8 +28,10 @@ export default function VideoGrid({
         if (localVideoRef.current) {
             // Prioritize screen stream if available
             if (screenStream) {
+                console.log('Setting localVideoRef to screenStream');
                 localVideoRef.current.srcObject = screenStream;
             } else if (localStream) {
+                console.log('Setting localVideoRef to localStream');
                 localVideoRef.current.srcObject = localStream;
             }
         }
@@ -41,7 +43,15 @@ export default function VideoGrid({
             console.log('Setting local thumbnail srcObject to localStream');
             localThumbnailRef.current.srcObject = localStream;
         }
-    }, [localStream]);
+    }, [localStream, isSomeoneScreenSharing]);
+    
+    // Force update localVideoRef when switching back to normal grid
+    useEffect(() => {
+        if (!isSomeoneScreenSharing && localVideoRef.current && localStream) {
+            console.log('Forcing localVideoRef update to localStream (back to normal grid)');
+            localVideoRef.current.srcObject = localStream;
+        }
+    }, [isSomeoneScreenSharing, localStream]);
 
     // Handle outside click to close menu
     useEffect(() => {
