@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import './VideoGrid.css';
 
 export default function VideoGrid({
@@ -24,10 +24,13 @@ export default function VideoGrid({
     const [currentPage, setCurrentPage] = useState(0);
     const pageSize = 6;
 
-    // Check if someone is sharing screen (moved up before useEffects that use it)
-    const isSomeoneScreenSharing = activeScreenSharer !== null;
-    const isLocalScreenSharing = isSomeoneScreenSharing && activeScreenSharer?.socketId === mySocketId;
-    const screenSharerSocketId = activeScreenSharer?.socketId;
+    // Check if someone is sharing screen (use useMemo to ensure stable derived values)
+    const isSomeoneScreenSharing = useMemo(() => activeScreenSharer != null, [activeScreenSharer]);
+    const isLocalScreenSharing = useMemo(() => 
+        isSomeoneScreenSharing && activeScreenSharer?.socketId === mySocketId, 
+        [isSomeoneScreenSharing, activeScreenSharer, mySocketId]
+    );
+    const screenSharerSocketId = useMemo(() => activeScreenSharer?.socketId, [activeScreenSharer]);
 
     useEffect(() => {
         if (localVideoRef.current) {
