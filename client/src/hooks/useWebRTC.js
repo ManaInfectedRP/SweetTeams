@@ -371,7 +371,16 @@ export function useWebRTC(roomId, token, username) {
         
         // Listen for track events to handle track replacements (e.g., screen sharing)
         // This is crucial for updating when remote peer switches between camera and screen share
+        let lastTrackUpdate = 0;
         peer._pc.ontrack = (event) => {
+            const now = Date.now();
+            // Debounce updates to prevent spam (max once per 500ms)
+            if (now - lastTrackUpdate < 500) {
+                console.log('⏭️ Skipping ontrack update (debounced)');
+                return;
+            }
+            lastTrackUpdate = now;
+            
             console.log('🔄 Track event from peer:', socketId, 'kind:', event.track.kind, 'id:', event.track.id.substring(0,8));
             if (event.streams && event.streams[0]) {
                 const stream = event.streams[0];
@@ -453,7 +462,7 @@ export function useWebRTC(roomId, token, username) {
                 
                 lastTrackIds = trackIds;
             }
-        }, 1000);
+        }, 3000);
         
         // Cleanup interval when peer is destroyed
         const originalDestroy = peer.destroy.bind(peer);

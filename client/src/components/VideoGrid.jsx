@@ -283,8 +283,6 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
         if (videoRef.current && remote.stream) {
             console.log(`Setting srcObject for remote ${socketId}, tracks:`, remote.stream.getTracks().map(t => `${t.kind}:${t.readyState}`));
             videoRef.current.srcObject = remote.stream;
-            // Force play to ensure video starts
-            videoRef.current.play().catch(err => console.warn('Play failed:', err));
         }
     }, [remote.stream, socketId]);
 
@@ -403,8 +401,6 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
         if (videoRef.current && remote.stream) {
             console.log(`Setting srcObject for thumbnail ${socketId}, tracks:`, remote.stream.getTracks().map(t => `${t.kind}:${t.readyState}`));
             videoRef.current.srcObject = remote.stream;
-            // Force play to ensure video starts
-            videoRef.current.play().catch(err => console.warn('Thumbnail play failed:', err));
         }
     }, [remote.stream, socketId]);
 
