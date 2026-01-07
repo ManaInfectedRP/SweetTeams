@@ -19,6 +19,7 @@ export default function VideoGrid({
     mySocketId = null
 }) {
     const localVideoRef = useRef(null);
+    const localThumbnailRef = useRef(null);
     const [activeMenu, setActiveMenu] = useState(null); // socketId of active menu
     const [currentPage, setCurrentPage] = useState(0);
     const pageSize = 6;
@@ -33,6 +34,14 @@ export default function VideoGrid({
             }
         }
     }, [localStream, screenStream]);
+    
+    // Separate effect for local thumbnail in screen share mode
+    useEffect(() => {
+        if (localThumbnailRef.current && localStream) {
+            console.log('Setting local thumbnail srcObject to localStream');
+            localThumbnailRef.current.srcObject = localStream;
+        }
+    }, [localStream]);
 
     // Handle outside click to close menu
     useEffect(() => {
@@ -160,7 +169,7 @@ export default function VideoGrid({
                         {!isLocalScreenSharing && (
                             <div className="video-thumbnail local-thumbnail" key="local">
                                 <video
-                                    ref={localVideoRef}
+                                    ref={localThumbnailRef}
                                     autoPlay
                                     muted
                                     playsInline
