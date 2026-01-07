@@ -365,24 +365,30 @@ export function useWebRTC(roomId, token, username) {
         });
 
         peer.on('stream', (stream) => {
-            console.log('Received stream from peer:', socketId, 'tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
+            console.log('Received initial stream from peer:', socketId, 'tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
             setRemoteStreams(prev => new Map(prev).set(socketId, { stream, username: peerUsername }));
         });
         
         // Listen for track events to handle track replacements (e.g., screen sharing)
+        // This is crucial for updating when remote peer switches between camera and screen share
         peer._pc.ontrack = (event) => {
-            console.log('Track event from peer:', socketId, 'track kind:', event.track.kind, 'streams:', event.streams.length);
+            console.log('🔄 Track event from peer:', socketId, 'kind:', event.track.kind, 'id:', event.track.id.substring(0,8));
             if (event.streams && event.streams[0]) {
                 const stream = event.streams[0];
-                console.log('Updating remote stream with new tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
-                // Force update the remote stream when tracks change
+                console.log('Stream tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
+                
+                // Force update by creating a new stream object with current tracks
+                // This ensures React re-renders and video elements update their srcObject
+                const updatedStream = new MediaStream(stream.getTracks());
+                
                 setRemoteStreams(prev => {
                     const existing = prev.get(socketId);
-                    if (existing) {
-                        // Create new reference to trigger re-render
-                        return new Map(prev).set(socketId, { stream: stream, username: existing.username });
-                    }
-                    return new Map(prev).set(socketId, { stream: stream, username: peerUsername });
+                    const username = existing?.username || peerUsername;
+                    console.log('Updating stream for', socketId, 'with new MediaStream');
+                    // Create new Map to trigger React update
+                    const newMap = new Map(prev);
+                    newMap.set(socketId, { stream: updatedStream, username });
+                    return newMap;
                 });
             }
         };
