@@ -49,14 +49,26 @@ db.serialize(() => {
       UNIQUE(room_id, user_id)
     )
   `);
+
+    db.run(`
+    CREATE TABLE IF NOT EXISTS magic_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      used INTEGER DEFAULT 0
+    )
+  `);
 });
 
 // Database functions
-export function createUser(username, email, passwordHash) {
+export function createUser(username, email, passwordHash = null) {
     return new Promise((resolve, reject) => {
         db.run(
             'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-            [username, email, passwordHash],
+            [username, email, passwordHash || ''],
             function (err) {
                 if (err) reject(err);
                 else resolve({ lastID: this.lastID });
@@ -152,6 +164,49 @@ export function deleteRoom(linkCodeOrId) {
                 else resolve(this.changes);
             });
         });
+    });
+}
+
+// Magic link functions
+export function createMagicLink(email, name, token, expiresAt) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            'INSERT INTO magic_links (email, name, token, expires_at) VALUES (?, ?, ?, ?)',
+            [email, name, token, expiresAt],
+            function (err) {
+                if (err) reject(err);
+                else resolve({ lastID: this.lastID });
+            }
+        );
+    });
+}
+
+export async function findMagicLink(token) {
+    return await dbGet('SELECT * FROM magic_links WHERE token = ? AND used = 0', [token]);
+}
+
+export function markMagicLinkAsUsed(token) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            'UPDATE magic_links SET used = 1 WHERE token = ?',
+            [token],
+            function (err) {
+                if (err) reject(err);
+                else resolve();
+            }
+        );
+    });
+}
+
+export async function cleanupExpiredMagicLinks() {
+    return new Promise((resolve, reject) => {
+        db.run(
+            'DELETE FROM magic_links WHERE expires_at < datetime("now") OR used = 1',
+            function (err) {
+                if (err) reject(err);
+                else resolve(this.changes);
+            }
+        );
     });
 }
 

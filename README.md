@@ -6,7 +6,7 @@ En Microsoft Teams-liknande videokonferensapplikation med stöd för 50+ deltaga
 
 ## ✨ Funktioner
 
-- 🔐 **Användarautentisering** - Registrering och inloggning med JWT
+- 🔐 **Passwordless Authentication** - Magic links via e-post (ingen registrering behövs!)
 - 🎬 **Videomöten** - WebRTC-baserade videomöten
 - 📱 **Multi-plattform** - Webb, PWA (installera på mobil), Windows .exe
 - 🔢 **Gå med via kod** - Ange rumskod för att direkt hoppa in i möte
@@ -164,12 +164,38 @@ För att deploya SweetTeams till gratis hosting (Render.com), se den detaljerade
 
 👉 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Steg-för-steg guide för production deployment
 
+👉 **[SENDGRID_SETUP.md](SENDGRID_SETUP.md)** - 5-minuters guide för e-post (magic links)
+
+👉 **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Snabb checklista före deploy
+
 Guiden täcker:
 - ✅ Deployment till Render.com (gratis tier)
 - ✅ Frontend (React) + Backend (Node.js) + SQLite
+- ✅ SendGrid email setup för passwordless authentication
 - ✅ Environment variables konfiguration
-- ✅ HTTPS och WebRTC setup
-- ✅ Troubleshooting tips
+- ✅ Logga in (Passwordless)
+1. Gå till login-sidan
+2. Ange ditt **namn och e-post**
+3. Klicka "Skicka inloggningslänk"
+4. **Kolla din inkorg** för magic link (kontrollera även spam)
+5. Klicka på länken - du loggas in automatiskt!
+6. Kontot skapas automatiskt vid första inloggningen
+
+### Skapa rum
+1. Logga in (se ovan)ps
+
+## 🔐 Passwordless Authentication
+
+SweetTeams använder magic links istället för lösenord:
+1. Användare anger **namn + e-post**
+2. Ett **magic link skickas via e-post**
+3. Länken skapar kontot automatiskt och loggar in
+4. **Ingen registrering eller lösenord behövs!**
+
+**Development:** Magic links skrivs ut i serverns konsol  
+**Production:** E-post skickas via SendGrid (gratis 100/dag)
+
+Se [PASSWORDLESS_AUTH.md](PASSWORDLESS_AUTH.md) för teknisk dokumentation.
 
 ## 📝 Användning
 

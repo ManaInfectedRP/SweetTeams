@@ -35,6 +35,17 @@ npm start
   - [x] `JWT_SECRET` (generera säker nyckel!)
   - [x] `CLIENT_URL` (frontend URL)
   - [x] `DB_PATH=./sweetteams.db`
+  - [ ] **`EMAIL_SERVICE=sendgrid`**
+  - [ ] **`EMAIL_API_KEY` (från SendGrid)**
+  - [ ] **`EMAIL_FROM` (verifierad avsändare)**
+  - [ ] **`EMAIL_FROM_NAME=SweetTeams`**
+
+### SendGrid Setup (Krävs för magic links!)
+- [ ] SendGrid-konto skapat på [sendgrid.com/free](https://sendgrid.com/free/)
+- [ ] API-nyckel genererad med "Mail Send" permissions
+- [ ] Single Sender Verification genomförd
+- [ ] E-postadress verifierad i SendGrid
+- [ ] API-nyckel tillagd i Render environment variables
 
 ### Frontend (Static Site)
 - [x] Service skapad: `sweetteams`
@@ -49,7 +60,9 @@ npm start
 - [x] Backend service körs utan fel (kolla logs)
 - [x] Frontend site är tillgänglig
 - [x] Backend `CLIENT_URL` uppdaterad med frontend URL
-- [ ] Testa registrering av ny användare
+- [ ] **SendGrid e-post fungerar (testa magic link)**
+- [ ] **Mottaget magic link e-post i inkorg**
+- [ ] **Magic link loggar in korrekt**
 - [ ] Testa skapa rum
 - [ ] Testa gå med i rum
 - [ ] Testa video/audio
@@ -64,7 +77,19 @@ npm start
 
 **CORS Error:**
 - Verifiera `CLIENT_URL` i backend env vars
-- Verifiera `VITE_API_URL` i frontend env vars
+- Magic link e-post kommer inte fram:**
+- Kontrollera att `EMAIL_API_KEY` är korrekt satt
+- Kolla spam/skräppost-mappen
+- Verifiera att avsändaren är verifierad i SendGrid
+- Kolla backend logs för email errors
+- Test SendGrid API key i SendGrid Dashboard → Settings → API Keys
+
+**"Email service not configured" error:**
+- Kontrollera att alla EMAIL_* environment variables är satta
+- Verifiera att `NODE_ENV=production` är satt
+- Redeploya backend efter att ha lagt till env vars
+
+**Verifiera `VITE_API_URL` i frontend env vars
 
 **Socket.io inte ansluter:**
 - Kolla browser console

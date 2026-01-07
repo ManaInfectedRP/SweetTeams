@@ -73,6 +73,36 @@ export function AuthProvider({ children }) {
         return data;
     };
 
+    const requestMagicLink = async (email, name) => {
+        const response = await fetch(`${config.apiUrl}/api/auth/request-magic-link`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Kunde inte skicka magic link');
+        }
+
+        return await response.json();
+    };
+
+    const verifyMagicLink = async (token) => {
+        const response = await fetch(`${config.apiUrl}/api/auth/verify-magic-link?token=${token}`);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Verifiering misslyckades');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        return data;
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         setToken(null);
@@ -80,7 +110,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, requestMagicLink, verifyMagicLink, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

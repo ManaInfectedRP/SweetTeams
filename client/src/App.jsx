@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import VerifyMagicLink from './pages/VerifyMagicLink';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
 
@@ -53,10 +53,8 @@ function App() {
               <Login />
             </PublicRoute>
           } />
-          <Route path="/register" element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
+          <Route path="/auth/verify" element={
+            <VerifyMagicLink />
           } />
           <Route path="/dashboard" element={
             <ProtectedRoute>

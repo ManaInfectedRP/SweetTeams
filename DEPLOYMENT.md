@@ -84,6 +84,41 @@ Klicka på **"Advanced"** och lägg till följande environment variables:
 | `JWT_SECRET` | [Generera en säker slumpmässig sträng](https://www.random.org/strings/?num=1&len=64&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new) |
 | `CLIENT_URL` | (Lämna tom tills vidare, vi uppdaterar detta senare) |
 | `DB_PATH` | `./sweetteams.db` |
+| `EMAIL_SERVICE` | `sendgrid` |
+| `EMAIL_API_KEY` | (Se Steg 2.3.1 nedan) |
+| `EMAIL_FROM` | `noreply@sweetteams.onrender.com` (eller din egen domän) |
+| `EMAIL_FROM_NAME` | `SweetTeams` |
+
+#### 2.3.1 Konfigurera SendGrid för E-post (VIKTIGT för Magic Links!)
+
+SweetTeams använder passwordless authentication med "magic links" som skickas via e-post. För att detta ska fungera i produktion behöver du konfigurera SendGrid:
+
+**Steg 1: Skapa SendGrid-konto (Gratis)**
+1. Gå till [SendGrid.com](https://sendgrid.com/free/)
+2. Registrera ett gratis konto (100 emails/dag gratis)
+3. Verifiera din e-postadress
+
+**Steg 2: Skapa API-nyckel**
+1. Logga in på SendGrid Dashboard
+2. Gå till **Settings** → **API Keys**
+3. Klicka **Create API Key**
+4. Namn: `SweetTeams-Render`
+5. Permissions: **Full Access** (eller minst "Mail Send")
+6. Klicka **Create & View**
+7. **KOPIERA API-NYCKELN** (du kan inte se den igen!)
+
+**Steg 3: Lägg till i Render Environment Variables**
+1. Gå tillbaka till Render Dashboard → din backend service
+2. Under Environment Variables, uppdatera `EMAIL_API_KEY` med din SendGrid API-nyckel
+3. Klicka **Save Changes**
+
+**Steg 4: Verifiera avsändare (Single Sender Verification)**
+1. I SendGrid Dashboard, gå till **Settings** → **Sender Authentication**
+2. Klicka **Get Started** under "Single Sender Verification"
+3. Fyll i dina uppgifter (använd samma e-post som i `EMAIL_FROM`)
+4. Verifiera e-postadressen genom att klicka på länken i e-postmeddelandet
+
+**OBS:** För produktion med custom domain rekommenderas "Domain Authentication" istället för Single Sender Verification.
 
 **Viktig anmärkning om databasen:** 
 - SQLite-databasen kommer att lagras på Render's filsystem
@@ -148,9 +183,18 @@ Nu när vi har frontend-URL:en:
 ## ✅ Steg 5: Testa din deployment
 
 1. Öppna din frontend-URL: `https://sweetteams.onrender.com`
-2. Registrera ett nytt konto
+2. **Testa passwordless login:**
+   - Gå till login-sidan
+   - Ange ditt namn och e-post
+   - Kolla din inkorg för magic link e-post
+   - Klicka på länken för att logga in
 3. Skapa ett rum
 4. Testa videochatt-funktionaliteten
+
+**Första magic link tar längre tid:**
+- SendGrid kan ta 1-2 minuter för första e-postmeddelandet
+- Kontrollera även spam/skräppost-mappen
+- Om du inte får e-post efter 5 min, kolla backend logs i Render Dashboard
 
 ## 🔧 Alternativ: Använda render.yaml (Infrastruktur som kod)
 

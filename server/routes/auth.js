@@ -1,7 +1,16 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createUser, findUserByEmail, findUserByUsername, findUserById } from '../database.js';
+import crypto from 'crypto';
+import { 
+    createUser, 
+    findUserByEmail, 
+    findUserById,
+    createMagicLink,
+    findMagicLink,
+    markMagicLinkAsUsed,
+    cleanupExpiredMagicLinks
+} from '../database.js';
+import { sendMagicLinkEmail } from '../email.js';
 
 const router = express.Router();
 
@@ -23,94 +32,126 @@ export function authenticateToken(req, res, next) {
     });
 }
 
-// Register new user
-router.post('/register', async (req, res) => {
+// Request magic link - replaces both login and register
+router.post('/request-magic-link', async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { email, name } = req.body;
 
         // Validation
-        if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
+        if (!email || !name) {
+            return res.status(400).json({ error: 'E-post och namn krävs' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Ogiltig e-postadress' });
         }
 
-        // Check if user already exists
-        const existingEmail = await findUserByEmail(email);
-        if (existingEmail) {
-            return res.status(400).json({ error: 'Email already registered' });
-        }
-
-        const existingUsername = await findUserByUsername(username);
-        if (existingUsername) {
-            return res.status(400).json({ error: 'Username already taken' });
-        }
-
-        // Hash password
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        // Create user
-        const result = await createUser(username, email, passwordHash);
-        const userId = result.lastID;
-
-        // Generate JWT token
-        const token = jwt.sign(
-            { id: userId, username, email },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+        // Generate secure token
+        const token = crypto.randomBytes(32).toString('hex');
+        
+        // Set expiration to 15 minutes from now
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        
+        // Create magic link
+        await createMagicLink(email, name, token, expiresAt);
+        
+        // Send email
+        await sendMagicLinkEmail(email, name, token);
+        
+        // Clean up old links
+        cleanupExpiredMagicLinks().catch(err => 
+            console.error('Error cleaning up expired magic links:', err)
         );
 
-        res.status(201).json({
-            message: 'User registered successfully',
-            token,
-            user: { id: userId, username, email }
+        res.json({ 
+            message: 'Magic link skickat! Kolla din e-post.',
+            success: true 
         });
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: 'Server error during registration' });
+        console.error('Magic link request error:', error);
+        res.status(500).json({ error: 'Kunde inte skicka magic link' });
     }
 });
 
-// Login user
-router.post('/login', async (req, res) => {
+// Verify magic link and create/login user
+router.get('/verify-magic-link', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { token } = req.query;
 
-        // Validation
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        if (!token) {
+            return res.status(400).json({ error: 'Token krävs' });
         }
 
-        // Find user
-        const user = await findUserByEmail(email);
+        // Find magic link
+        const magicLink = await findMagicLink(token);
+        
+        if (!magicLink) {
+            return res.status(401).json({ error: 'Ogiltig eller använd länk' });
+        }
+
+        // Check if expired
+        const now = new Date();
+        const expiresAt = new Date(magicLink.expires_at);
+        
+        if (now > expiresAt) {
+            return res.status(401).json({ error: 'Länken har gått ut. Begär en ny.' });
+        }
+
+        // Mark link as used
+        await markMagicLinkAsUsed(token);
+
+        // Check if user exists
+        let user = await findUserByEmail(magicLink.email);
+        
         if (!user) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        // Verify password
-        const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            // Create new user
+            const result = await createUser(magicLink.name, magicLink.email);
+            user = {
+                id: result.lastID,
+                username: magicLink.name,
+                email: magicLink.email
+            };
         }
 
         // Generate JWT token
-        const token = jwt.sign(
+        const jwtToken = jwt.sign(
             { id: user.id, username: user.username, email: user.email },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.json({
-            message: 'Login successful',
-            token,
-            user: { id: user.id, username: user.username, email: user.email }
+            message: 'Inloggning lyckades',
+            token: jwtToken,
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                email: user.email 
+            }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Server error during login' });
+        console.error('Magic link verification error:', error);
+        res.status(500).json({ error: 'Verifiering misslyckades' });
     }
+});
+
+// Legacy routes kept for backwards compatibility (optional - can be removed)
+// Register new user (DEPRECATED - use magic links instead)
+router.post('/register', async (req, res) => {
+    res.status(410).json({ 
+        error: 'Registrering med lösenord stöds inte längre. Använd magic link istället.',
+        useEndpoint: '/api/auth/request-magic-link'
+    });
+});
+
+// Login user (DEPRECATED - use magic links instead)
+router.post('/login', async (req, res) => {
+    res.status(410).json({ 
+        error: 'Inloggning med lösenord stöds inte längre. Använd magic link istället.',
+        useEndpoint: '/api/auth/request-magic-link'
+    });
 });
 
 // Get current user

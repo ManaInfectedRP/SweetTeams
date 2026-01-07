@@ -15,6 +15,14 @@ services:
         generateValue: true
       - key: CLIENT_URL
         value: https://sweetteams.onrender.com
+      - key: EMAIL_SERVICE
+        value: sendgrid
+      - key: EMAIL_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: noreply@sweetteams.onrender.com
+      - key: EMAIL_FROM_NAME
+        value: SweetTeams
     healthCheckPath: /api/health
 
   # Frontend Service (Static Site)

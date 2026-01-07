@@ -1,8 +1,17 @@
 import db from './database.js';
 
-console.log("Rensar alla rum och deltagare...");
+console.log("Rensar alla rum, deltagare och gamla magic links...");
 
 db.serialize(() => {
+    // Ta bort gamla magic links
+    db.run("DELETE FROM magic_links WHERE expires_at < datetime('now') OR used = 1", function (err) {
+        if (err) {
+            console.error("Fel vid rensning av magic links:", err);
+        } else {
+            console.log(`Tog bort ${this.changes} rader från magic_links.`);
+        }
+    });
+
     // Ta bort alla deltagare först (för att undvika FK-problem om det finns, även om vi inte har strikta constraints)
     db.run("DELETE FROM room_participants", function (err) {
         if (err) {
