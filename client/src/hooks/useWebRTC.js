@@ -392,6 +392,72 @@ export function useWebRTC(roomId, token, username) {
                 });
             }
         };
+        
+        // Monitor for track changes on the remote stream
+        // This catches track replacements that don't trigger ontrack
+        const monitorTracks = () => {
+            const receivers = peer._pc.getReceivers();
+            receivers.forEach(receiver => {
+                if (receiver.track) {
+                    receiver.track.onended = () => {
+                        console.log('Track ended from peer:', socketId, receiver.track.kind);
+                    };
+                    receiver.track.onmute = () => {
+                        console.log('Track muted from peer:', socketId, receiver.track.kind);
+                    };
+                    receiver.track.onunmute = () => {
+                        console.log('Track unmuted from peer:', socketId, receiver.track.kind);
+                    };
+                }
+            });
+        };
+        
+        // Check for track changes periodically
+        peer._pc.onnegotiationneeded = () => {
+            console.log('🔄 Negotiation needed for peer:', socketId);
+            monitorTracks();
+        };
+        
+        // Initial track monitoring
+        setTimeout(monitorTracks, 1000);
+        
+        // Polling mechanism to catch track changes that don't trigger events
+        const trackCheckInterval = setInterval(() => {
+            const receivers = peer._pc.getReceivers();
+            const tracks = receivers.map(r => r.track).filter(Boolean);
+            
+            if (tracks.length > 0) {
+                // Get current remote stream
+                const currentStream = peer._remoteStreams?.[0];
+                const currentTracks = currentStream?.getTracks() || [];
+                
+                // Check if tracks have changed
+                const trackIds = tracks.map(t => t.id).sort().join(',');
+                const currentTrackIds = currentTracks.map(t => t.id).sort().join(',');
+                
+                if (trackIds !== currentTrackIds) {
+                    console.log('🔄 Detected track change via polling for', socketId);
+                    // Create updated stream with current tracks
+                    const updatedStream = new MediaStream(tracks);
+                    setRemoteStreams(prev => {
+                        const existing = prev.get(socketId);
+                        if (existing) {
+                            const newMap = new Map(prev);
+                            newMap.set(socketId, { stream: updatedStream, username: existing.username });
+                            return newMap;
+                        }
+                        return prev;
+                    });
+                }
+            }
+        }, 1000);
+        
+        // Cleanup interval when peer is destroyed
+        const originalDestroy = peer.destroy.bind(peer);
+        peer.destroy = () => {
+            clearInterval(trackCheckInterval);
+            originalDestroy();
+        };
 
         peer.on('error', (err) => {
             console.error('Peer error:', err);
