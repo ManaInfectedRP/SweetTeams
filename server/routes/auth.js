@@ -14,6 +14,31 @@ import { sendMagicLinkEmail } from '../email.js';
 
 const router = express.Router();
 
+// Health check endpoint for email configuration
+router.get('/email-config-check', (req, res) => {
+    const config = {
+        emailApiKey: !!process.env.EMAIL_API_KEY,
+        emailFrom: !!process.env.EMAIL_FROM,
+        emailFromName: !!process.env.EMAIL_FROM_NAME,
+        clientUrl: !!process.env.CLIENT_URL,
+        nodeEnv: process.env.NODE_ENV
+    };
+    
+    const missing = [];
+    if (!process.env.EMAIL_API_KEY) missing.push('EMAIL_API_KEY');
+    if (!process.env.EMAIL_FROM) missing.push('EMAIL_FROM');
+    if (!process.env.CLIENT_URL) missing.push('CLIENT_URL');
+    
+    res.json({
+        configured: missing.length === 0,
+        config,
+        missing: missing.length > 0 ? missing : undefined,
+        message: missing.length > 0 
+            ? `Missing environment variables: ${missing.join(', ')}` 
+            : 'Email configuration looks good!'
+    });
+});
+
 // Middleware to verify JWT token
 export function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -71,7 +96,11 @@ router.post('/request-magic-link', async (req, res) => {
         });
     } catch (error) {
         console.error('Magic link request error:', error);
-        res.status(500).json({ error: 'Kunde inte skicka magic link' });
+        // Send the actual error message to help with debugging
+        res.status(500).json({ 
+            error: error.message || 'Kunde inte skicka magic link',
+            details: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
     }
 });
 
