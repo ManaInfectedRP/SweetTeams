@@ -228,10 +228,16 @@ export function useWebRTC(roomId, token, username) {
                 // Force refresh the remote stream for this peer
                 const peer = peersRef.current.get(fromSocketId);
                 if (peer && peer._pc) {
+                    console.log('Found peer connection for', fromSocketId);
                     const receivers = peer._pc.getReceivers();
+                    console.log('Receivers:', receivers.length);
                     const tracks = receivers.map(r => r.track).filter(Boolean);
+                    console.log('Tracks from receivers:', tracks.map(t => `${t.kind}:${t.id.substring(0,8)}:${t.readyState}`));
+                    
                     if (tracks.length > 0) {
                         const updatedStream = new MediaStream(tracks);
+                        console.log('Created new MediaStream with tracks:', updatedStream.getTracks().map(t => `${t.kind}:${t.readyState}`));
+                        
                         setRemoteStreams(prev => {
                             const existing = prev.get(fromSocketId);
                             if (existing) {
@@ -240,9 +246,14 @@ export function useWebRTC(roomId, token, username) {
                                 newMap.set(fromSocketId, { stream: updatedStream, username: existing.username });
                                 return newMap;
                             }
+                            console.warn('No existing stream found for', fromSocketId);
                             return prev;
                         });
+                    } else {
+                        console.warn('No tracks found for peer', fromSocketId);
                     }
+                } else {
+                    console.warn('No peer connection found for', fromSocketId);
                 }
             });
             
@@ -671,12 +682,24 @@ export function useWebRTC(roomId, token, username) {
                 if (localStreamRef.current) {
                     const videoTrack = localStreamRef.current.getVideoTracks()[0];
                     console.log('Restoring camera track:', videoTrack);
+                    console.log('Track details:', {
+                        id: videoTrack?.id,
+                        kind: videoTrack?.kind,
+                        label: videoTrack?.label,
+                        readyState: videoTrack?.readyState,
+                        enabled: videoTrack?.enabled,
+                        muted: videoTrack?.muted
+                    });
                     
                     if (videoTrack && videoTrack.readyState === 'live') {
+                        // Enable the track if it's disabled
+                        videoTrack.enabled = isCameraOn;
+                        
                         peersRef.current.forEach(peer => {
                             try {
                                 const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
                                 if (sender) {
+                                    console.log('Current sender track:', sender.track?.id, sender.track?.label);
                                     sender.replaceTrack(videoTrack).then(() => {
                                         console.log('✅ Replaced screen track with camera track');
                                         // Signal to remote peers that track was replaced
