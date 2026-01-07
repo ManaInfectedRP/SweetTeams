@@ -180,10 +180,12 @@ export function setupSignaling(httpServer) {
                     roomScreenSharers.delete(socket.roomId);
                 }
                 
-                // Notify everyone
-                io.to(socket.roomId).emit('user-stopped-screen-sharing', {
-                    socketId: socket.id
-                });
+                console.log(`Screen share stopped by ${socket.username} in room ${socket.roomId}`);
+                
+                // Notify everyone including the sender
+                const payload = { socketId: socket.id };
+                socket.emit('user-stopped-screen-sharing', payload); // Send to sender
+                socket.to(socket.roomId).emit('user-stopped-screen-sharing', payload); // Send to others
             }
         });
 
