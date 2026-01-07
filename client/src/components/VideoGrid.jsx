@@ -305,8 +305,22 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
 
     useEffect(() => {
         if (videoRef.current && remote.stream) {
-            console.log(`Setting srcObject for remote ${socketId}, tracks:`, remote.stream.getTracks().map(t => `${t.kind}:${t.readyState}`));
+            console.log(`Setting srcObject for remote ${socketId}, tracks:`, remote.stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.enabled}:${t.muted}:${t.label.substring(0, 20)}`));
             videoRef.current.srcObject = remote.stream;
+            
+            // Log video element state after setting srcObject
+            setTimeout(() => {
+                const videoEl = videoRef.current;
+                if (videoEl) {
+                    console.log(`Video element state for ${socketId}:`, {
+                        readyState: videoEl.readyState,
+                        paused: videoEl.paused,
+                        muted: videoEl.muted,
+                        videoWidth: videoEl.videoWidth,
+                        videoHeight: videoEl.videoHeight
+                    });
+                }
+            }, 500);
         }
     }, [remote.stream, socketId]);
 
