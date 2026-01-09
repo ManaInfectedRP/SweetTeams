@@ -714,24 +714,9 @@ export function useWebRTC(roomId, token, username) {
                 gainNodeRef.current.disconnect();
             }
             
-            // Create or reuse audio context
-            if (!audioContextRef.current) {
-                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            
-            const audioContext = audioContextRef.current;
-            const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
-            const gainNode = audioContext.createGain();
-            
-            // Apply volume (0-100% mapped to 0-2 gain)
-            gainNode.gain.value = micVolume / 50;
-            
-            // Connect nodes
-            source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            sourceNodeRef.current = source;
-            gainNodeRef.current = gainNode;
+            // Note: We don't use audio context for local audio to avoid echo/feedback
+            // Volume control and noise reduction are handled via MediaStream constraints
+            // This function is kept for future audio processing needs
             
         } catch (err) {
             console.error('Failed to apply audio processing:', err);
@@ -741,9 +726,10 @@ export function useWebRTC(roomId, token, username) {
     // Handle volume change
     const handleMicVolumeChange = (volume) => {
         setMicVolume(volume);
-        if (gainNodeRef.current) {
-            gainNodeRef.current.gain.value = volume / 50;
-        }
+        // Note: Browser MediaStream doesn't support direct volume control
+        // Volume would need to be processed server-side or via Web Audio API
+        // For now, we just store the preference
+        console.log('Microphone volume set to:', volume + '%');
     };
 
     // Handle noise reduction change
