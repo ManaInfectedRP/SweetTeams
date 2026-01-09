@@ -42,7 +42,14 @@ export default function Room() {
         selectedSpeakerId,
         selectCamera,
         selectMicrophone,
-        selectSpeaker
+        selectSpeaker,
+        // Audio settings
+        micVolume,
+        noiseReduction,
+        spatialAudio,
+        handleMicVolumeChange,
+        handleNoiseReductionChange,
+        handleSpatialAudioChange
     } = useWebRTC(linkCode, token, user?.username);
 
     useEffect(() => {
@@ -147,6 +154,12 @@ export default function Room() {
                         onSelectCamera={selectCamera}
                         onSelectMicrophone={selectMicrophone}
                         onSelectSpeaker={selectSpeaker}
+                        micVolume={micVolume}
+                        noiseReduction={noiseReduction}
+                        spatialAudio={spatialAudio}
+                        onMicVolumeChange={handleMicVolumeChange}
+                        onNoiseReductionChange={handleNoiseReductionChange}
+                        onSpatialAudioChange={handleSpatialAudioChange}
                         onLeave={handleLeave}
                     />
                 </div>

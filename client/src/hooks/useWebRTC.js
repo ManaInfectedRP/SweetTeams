@@ -20,6 +20,11 @@ export function useWebRTC(roomId, token, username) {
     const [participants, setParticipants] = useState([]);
     const [messages, setMessages] = useState([]);
     
+    // Audio settings state
+    const [micVolume, setMicVolume] = useState(100);
+    const [noiseReduction, setNoiseReduction] = useState(true);
+    const [spatialAudio, setSpatialAudio] = useState(false);
+    
     // Track who is currently screen sharing: { socketId, username } or null
     const [activeScreenSharer, setActiveScreenSharer] = useState(null);
 
@@ -30,6 +35,9 @@ export function useWebRTC(roomId, token, username) {
     const peersRef = useRef(new Map());
     const localStreamRef = useRef(null);
     const screenStreamRef = useRef(null);
+    const audioContextRef = useRef(null);
+    const gainNodeRef = useRef(null);
+    const sourceNodeRef = useRef(null);
 
     // Keep track of our own socket ID for state mapping
     const mySocketId = socketRef.current?.id;
@@ -54,8 +62,14 @@ export function useWebRTC(roomId, token, username) {
 
         const getMediaStream = async (videoConstraints = true) => {
             try {
+                const audioConstraints = {
+                    echoCancellation: true,
+                    noiseSuppression: noiseReduction,
+                    autoGainControl: true
+                };
+                
                 const constraints = {
-                    audio: true,
+                    audio: audioConstraints,
                     video: videoConstraints === true ? { facingMode: facingMode } : videoConstraints
                 };
                 return await navigator.mediaDevices.getUserMedia(constraints);
@@ -92,6 +106,16 @@ export function useWebRTC(roomId, token, username) {
                 localStreamRef.current = stream;
                 setLocalStream(stream);
                 
+                // Apply initial audio processing
+                const audioTrack = stream.getAudioTracks()[0];
+                if (audioTrack) {
+                    applyAudioProcessing(audioTrack);
+                    const aSettings = audioTrack.getSettings();
+                    if (aSettings.deviceId) {
+                        setSelectedMicrophoneId(aSettings.deviceId);
+                    }
+                }
+                
                 // Store initial device ID and facing mode
                 const videoTrack = stream.getVideoTracks()[0];
                 if (videoTrack) {
@@ -102,13 +126,6 @@ export function useWebRTC(roomId, token, username) {
                     }
                     if (settings.facingMode) {
                         setFacingMode(settings.facingMode);
-                    }
-                }
-                const audioTrack = stream.getAudioTracks()[0];
-                if (audioTrack) {
-                    const aSettings = audioTrack.getSettings();
-                    if (aSettings.deviceId) {
-                        setSelectedMicrophoneId(aSettings.deviceId);
                     }
                 }
             }
@@ -371,6 +388,15 @@ export function useWebRTC(roomId, token, username) {
             }
             if (screenStreamRef.current) {
                 screenStreamRef.current.getTracks().forEach(track => track.stop());
+            }
+            if (sourceNodeRef.current) {
+                sourceNodeRef.current.disconnect();
+            }
+            if (gainNodeRef.current) {
+                gainNodeRef.current.disconnect();
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
             }
             peersRef.current.forEach(peer => peer.destroy());
             if (socketRef.current) {
@@ -638,7 +664,16 @@ export function useWebRTC(roomId, token, username) {
         try {
             const currentAudioTrack = localStreamRef.current.getAudioTracks()[0];
             const currentEnabled = currentAudioTrack?.enabled;
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } }, video: false });
+            
+            // Build constraints with audio settings
+            const constraints = {
+                deviceId: { exact: deviceId },
+                echoCancellation: true,
+                noiseSuppression: noiseReduction,
+                autoGainControl: true
+            };
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints, video: false });
             const newAudioTrack = stream.getAudioTracks()[0];
             if (!newAudioTrack) throw new Error('Ingen ljud-spår hittades');
             if (currentEnabled !== undefined) newAudioTrack.enabled = currentEnabled;
@@ -649,6 +684,10 @@ export function useWebRTC(roomId, token, username) {
             localStreamRef.current.addTrack(newAudioTrack);
             setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
             setSelectedMicrophoneId(deviceId);
+            
+            // Reapply audio processing
+            applyAudioProcessing(newAudioTrack);
+            
             peersRef.current.forEach(peer => {
                 const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
                 if (sender) sender.replaceTrack(newAudioTrack);
@@ -660,6 +699,107 @@ export function useWebRTC(roomId, token, username) {
             console.error('Failed to select microphone:', err);
             alert('Kunde inte byta mikrofon: ' + err.message);
         }
+    };
+
+    // Apply audio processing (volume, noise reduction, spatial audio)
+    const applyAudioProcessing = (audioTrack) => {
+        if (!audioTrack) return;
+        
+        try {
+            // Clean up previous audio context if exists
+            if (sourceNodeRef.current) {
+                sourceNodeRef.current.disconnect();
+            }
+            if (gainNodeRef.current) {
+                gainNodeRef.current.disconnect();
+            }
+            
+            // Create or reuse audio context
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const audioContext = audioContextRef.current;
+            const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
+            const gainNode = audioContext.createGain();
+            
+            // Apply volume (0-100% mapped to 0-2 gain)
+            gainNode.gain.value = micVolume / 50;
+            
+            // Connect nodes
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            sourceNodeRef.current = source;
+            gainNodeRef.current = gainNode;
+            
+        } catch (err) {
+            console.error('Failed to apply audio processing:', err);
+        }
+    };
+
+    // Handle volume change
+    const handleMicVolumeChange = (volume) => {
+        setMicVolume(volume);
+        if (gainNodeRef.current) {
+            gainNodeRef.current.gain.value = volume / 50;
+        }
+    };
+
+    // Handle noise reduction change
+    const handleNoiseReductionChange = async (enabled) => {
+        setNoiseReduction(enabled);
+        
+        // Reapply microphone with new constraints
+        if (localStreamRef.current && selectedMicrophoneId) {
+            try {
+                const currentAudioTrack = localStreamRef.current.getAudioTracks()[0];
+                const currentEnabled = currentAudioTrack?.enabled;
+                
+                const constraints = {
+                    deviceId: { exact: selectedMicrophoneId },
+                    echoCancellation: true,
+                    noiseSuppression: enabled,
+                    autoGainControl: true
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints, video: false });
+                const newAudioTrack = stream.getAudioTracks()[0];
+                
+                if (newAudioTrack) {
+                    newAudioTrack.enabled = currentEnabled;
+                    
+                    if (currentAudioTrack) {
+                        currentAudioTrack.stop();
+                        localStreamRef.current.removeTrack(currentAudioTrack);
+                    }
+                    
+                    localStreamRef.current.addTrack(newAudioTrack);
+                    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                    
+                    // Reapply audio processing
+                    applyAudioProcessing(newAudioTrack);
+                    
+                    // Update peers
+                    peersRef.current.forEach(peer => {
+                        const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
+                        if (sender) sender.replaceTrack(newAudioTrack);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to update noise reduction:', err);
+            }
+        }
+    };
+
+    // Handle spatial audio change
+    const handleSpatialAudioChange = (enabled) => {
+        setSpatialAudio(enabled);
+        
+        // Spatial audio typically affects remote audio playback
+        // This would require additional audio processing on remote streams
+        // For now, we just store the preference
+        console.log('Spatial audio:', enabled ? 'enabled' : 'disabled');
     };
 
     // Select speaker (audio output) by deviceId
@@ -905,6 +1045,9 @@ export function useWebRTC(roomId, token, username) {
         messages,
         participantStates, // New export
         activeScreenSharer, // Track who is sharing screen
+        micVolume,
+        noiseReduction,
+        spatialAudio,
         toggleCamera,
         toggleMic,
         toggleScreenShare,
@@ -915,6 +1058,9 @@ export function useWebRTC(roomId, token, username) {
         sendMessage,
         sendAdminCommand,
         deleteMessage,
-        setModerator
+        setModerator,
+        handleMicVolumeChange,
+        handleNoiseReductionChange,
+        handleSpatialAudioChange
     };
 }

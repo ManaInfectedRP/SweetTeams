@@ -17,7 +17,14 @@ export default function Controls({
     selectedSpeakerId,
     onSelectCamera,
     onSelectMicrophone,
-    onSelectSpeaker
+    onSelectSpeaker,
+    // Audio settings
+    micVolume = 100,
+    noiseReduction = true,
+    spatialAudio = false,
+    onMicVolumeChange,
+    onNoiseReductionChange,
+    onSpatialAudioChange
 }) {
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -93,6 +100,41 @@ export default function Controls({
                             ))}
                         </select>
                     </div>
+
+                    <div className="device-setting">
+                        <label>Mikrofonvolym: {micVolume}%</label>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={micVolume} 
+                            onChange={(e) => onMicVolumeChange?.(parseInt(e.target.value))}
+                            className="volume-slider"
+                        />
+                    </div>
+
+                    <div className="device-setting">
+                        <label>
+                            <input 
+                                type="checkbox" 
+                                checked={noiseReduction} 
+                                onChange={(e) => onNoiseReductionChange?.(e.target.checked)}
+                            />
+                            <span style={{ marginLeft: '8px' }}>Brusreducering</span>
+                        </label>
+                    </div>
+
+                    <div className="device-setting">
+                        <label>
+                            <input 
+                                type="checkbox" 
+                                checked={spatialAudio} 
+                                onChange={(e) => onSpatialAudioChange?.(e.target.checked)}
+                            />
+                            <span style={{ marginLeft: '8px' }}>Spatialljud</span>
+                        </label>
+                    </div>
+
                     <div className="device-setting">
                         <label>Högtalare</label>
                         {supportsOutputSelection ? (
