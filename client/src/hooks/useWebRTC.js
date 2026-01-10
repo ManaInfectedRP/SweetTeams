@@ -65,9 +65,7 @@ export function useWebRTC(roomId, token, username) {
                 const audioConstraints = {
                     echoCancellation: true,
                     noiseSuppression: noiseReduction,
-                    autoGainControl: false,
-                    sampleRate: 48000,
-                    sampleSize: 16
+                    autoGainControl: true
                 };
                 
                 const constraints = {
@@ -672,9 +670,7 @@ export function useWebRTC(roomId, token, username) {
                 deviceId: { exact: deviceId },
                 echoCancellation: true,
                 noiseSuppression: noiseReduction,
-                autoGainControl: false,
-                sampleRate: 48000,
-                sampleSize: 16
+                autoGainControl: true
             };
             
             const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints, video: false });
@@ -750,9 +746,7 @@ export function useWebRTC(roomId, token, username) {
                     deviceId: { exact: selectedMicrophoneId },
                     echoCancellation: true,
                     noiseSuppression: enabled,
-                    autoGainControl: false,
-                    sampleRate: 48000,
-                    sampleSize: 16
+                    autoGainControl: true
                 };
                 
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints, video: false });
