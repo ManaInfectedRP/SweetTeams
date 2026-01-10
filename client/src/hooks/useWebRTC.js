@@ -422,6 +422,16 @@ export function useWebRTC(roomId, token, username) {
                 setRaisedHands(new Map());
                 setIsHandRaised(false);
             });
+            
+            // --- SPEAKING STATE EVENTS ---
+            socket.on('user-speaking-state', ({ socketId, speaking }) => {
+                if (!mounted) return;
+                setSpeakingParticipants(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(socketId, speaking);
+                    return newMap;
+                });
+            });
         };
 
         init();
@@ -617,7 +627,14 @@ export function useWebRTC(roomId, token, username) {
                     // Mark as speaking
                     setSpeakingParticipants(prev => {
                         const newMap = new Map(prev);
+                        const wasNotSpeaking = !prev.get(socketId);
                         newMap.set(socketId, true);
+                        
+                        // Broadcast to others if this is local stream and we just started speaking
+                        if (socketId === 'local' && wasNotSpeaking && socketRef.current) {
+                            socketRef.current.emit('speaking-state', { speaking: true });
+                        }
+                        
                         return newMap;
                     });
                     
@@ -631,6 +648,12 @@ export function useWebRTC(roomId, token, username) {
                         setSpeakingParticipants(prev => {
                             const newMap = new Map(prev);
                             newMap.set(socketId, false);
+                            
+                            // Broadcast to others if this is local stream
+                            if (socketId === 'local' && socketRef.current) {
+                                socketRef.current.emit('speaking-state', { speaking: false });
+                            }
+                            
                             return newMap;
                         });
                     }, SPEAKING_TIMEOUT);

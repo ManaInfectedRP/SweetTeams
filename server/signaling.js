@@ -357,6 +357,17 @@ export function setupSignaling(httpServer) {
             
             console.log(`${socket.username} cleared all raised hands`);
         });
+        
+        // Handle speaking state changes
+        socket.on('speaking-state', ({ speaking }) => {
+            if (!socket.roomId) return;
+            
+            // Broadcast to others in the room
+            socket.to(socket.roomId).emit('user-speaking-state', {
+                socketId: socket.id,
+                speaking
+            });
+        });
 
         // Handle disconnect
         socket.on('disconnect', () => {
