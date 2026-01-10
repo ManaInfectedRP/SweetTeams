@@ -10,6 +10,12 @@ export default function Controls({
     onToggleScreenShare,
     onSwitchCamera,
     onLeave,
+    // Hand raising
+    isHandRaised,
+    onToggleRaiseHand,
+    raisedHandsCount,
+    isHost,
+    onClearAllHands,
     // Device selection
     devices,
     selectedCameraId,
@@ -56,6 +62,14 @@ export default function Controls({
                 >
                     🖥️
                 </button>
+                
+                <button
+                    onClick={onToggleRaiseHand}
+                    className={`btn-control ${isHandRaised ? 'btn-control-active' : ''}`}
+                    title={isHandRaised ? 'Sänk hand' : 'Räck upp hand'}
+                >
+                    ✋
+                </button>
 
                 {isMobile && onSwitchCamera && (
                     <button
@@ -69,6 +83,16 @@ export default function Controls({
             </div>
 
             <div className="controls-group">
+                {isHost && raisedHandsCount > 0 && (
+                    <button
+                        onClick={onClearAllHands}
+                        className="btn-control btn-clear-hands"
+                        title={`Rensa alla uppräckta händer (${raisedHandsCount})`}
+                    >
+                        ✋❌ {raisedHandsCount}
+                    </button>
+                )}
+                
                 <button
                     onClick={() => setShowSettings(s => !s)}
                     className="btn-control"

@@ -14,6 +14,8 @@ export default function VideoGrid({
         onSetModerator,
     participants = [], // Array of { socketId, userId, username }
     participantStates = new Map(), // Map of socketId -> { audio, video }
+    speakingParticipants = new Map(), // Map of socketId -> boolean (who is speaking)
+    raisedHands = new Map(), // Map of socketId -> { order, timestamp, username }
     selectedSpeakerId,
     activeScreenSharer = null, // { socketId, username } or null
     mySocketId = null
@@ -194,8 +196,10 @@ export default function VideoGrid({
                     <div className="screen-share-thumbnails">
                         {/* Show thumbnails for participants NOT sharing screen */}
                         {/* Local video thumbnail - only if we're NOT the one sharing */}
-                        {!isLocalScreenSharing && (
-                            <div className="video-thumbnail local-thumbnail" key="local">
+                        {!isLocalScreenSharing && (() => {
+                            const isSpeaking = speakingParticipants.get('local');
+                            return (
+                            <div className={`video-thumbnail local-thumbnail ${isSpeaking ? 'speaking' : ''}`} key="local">
                                 <video
                                     ref={localThumbnailRef}
                                     autoPlay
@@ -213,7 +217,8 @@ export default function VideoGrid({
                                     {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
                                 </div>
                             </div>
-                        )}
+                            );
+                        })()}
                         
                         {/* Remote video thumbnails - skip the one sharing screen */}
                         {Array.from(remoteStreams, ([socketId, remote]) => {
@@ -224,6 +229,8 @@ export default function VideoGrid({
                             
                             const state = getRemoteState(socketId);
                             const participant = getParticipantInfo(socketId);
+                            const isSpeaking = speakingParticipants.get(socketId);
+                            const handRaised = raisedHands.get(socketId);
                             return (
                                 <RemoteThumbnail
                                     key={socketId}
@@ -233,6 +240,8 @@ export default function VideoGrid({
                                     role={participant?.role || 'participant'}
                                     isRemoteHost={isRemoteHost(socketId)}
                                     mediaState={state}
+                                    isSpeaking={isSpeaking}
+                                    handRaised={handRaised}
                                     selectedSpeakerId={selectedSpeakerId}
                                 />
                             );
@@ -245,8 +254,15 @@ export default function VideoGrid({
                     <div className={`video-grid ${getGridClass(visibleCount)}`}>
                         {visibleTiles.map((tile, idx) => {
                     if (tile.kind === 'local') {
+                        const isSpeaking = speakingParticipants.get('local');
+                        const localHandRaised = raisedHands.get('local');
                         return (
-                            <div className="video-container local-video" key="local">
+                            <div className={`video-container local-video ${isSpeaking ? 'speaking' : ''}`} key="local">
+                                {localHandRaised && (
+                                    <div className="raised-hand-badge" title="Hand uppräckt">
+                                        ✋ {localHandRaised.order}
+                                    </div>
+                                )}
                                 <video
                                     ref={localVideoRef}
                                     autoPlay
@@ -263,6 +279,7 @@ export default function VideoGrid({
                                     {username} (Du)
                                     {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
                                     {currentUserIsModerator && <span title="Moderator"> 🛡️</span>}
+                                    {localHandRaised && <span title="Hand uppräckt"> ✋ #{localHandRaised.order}</span>}
                                 </div>
                             </div>
                         );
@@ -270,6 +287,8 @@ export default function VideoGrid({
                     const { socketId, remote } = tile;
                     const state = getRemoteState(socketId);
                     const participant = getParticipantInfo(socketId);
+                    const isSpeaking = speakingParticipants.get(socketId);
+                    const handRaised = raisedHands.get(socketId);
                     return (
                         <RemoteVideo
                             key={socketId}
@@ -281,6 +300,8 @@ export default function VideoGrid({
                             canManage={isHost || currentUserIsModerator}
                             isRemoteHost={isRemoteHost(socketId)}
                             mediaState={state}
+                            isSpeaking={isSpeaking}
+                            handRaised={handRaised}
                             showMenu={activeMenu === socketId}
                             onMenuClick={(e) => handleMenuClick(e, socketId)}
                             onAdminAction={handleAdminAction}
@@ -313,7 +334,7 @@ export default function VideoGrid({
     );
 }
 
-function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
+function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -354,7 +375,14 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
     const showManage = canManage && !isRemoteHost;
 
     return (
-        <div className="video-container">
+        <div className={`video-container ${isSpeaking ? 'speaking' : ''}`}>
+            {/* Raised Hand Badge */}
+            {handRaised && (
+                <div className="raised-hand-badge" title="Hand uppräckt">
+                    ✋ {handRaised.order}
+                </div>
+            )}
+            
             {/* Admin/Moderator Control Overlay */}
             {showManage && (
                 <div className="admin-controls-trigger" onClick={onMenuClick}>
@@ -416,6 +444,7 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
                 {remote.username}
                 {isRemoteHost && <span title="Admin"> ⭐</span>}
                 {isModerator && <span title="Moderator"> 🛡️</span>}
+                {handRaised && <span title="Hand uppräckt"> ✋ #{handRaised.order}</span>}
             </div>
         </div>
     );
@@ -447,7 +476,7 @@ function ScreenShareVideo({ stream, username, label }) {
 }
 
 // RemoteThumbnail component for participant thumbnails during screen share
-function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, selectedSpeakerId }) {
+function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -473,7 +502,12 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
     const isModerator = role === 'moderator';
 
     return (
-        <div className="video-thumbnail">
+        <div className={`video-thumbnail ${isSpeaking ? 'speaking' : ''}`}>
+            {handRaised && (
+                <div className="raised-hand-badge-small" title="Hand uppräckt">
+                    ✋ {handRaised.order}
+                </div>
+            )}
             <div className="status-icons">
                 {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
                 {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
@@ -497,6 +531,7 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
                 {remote.username}
                 {isRemoteHost && <span title="Admin"> ⭐</span>}
                 {isModerator && <span title="Moderator"> 🛡️</span>}
+                {handRaised && <span title="Hand uppräckt"> ✋ #{handRaised.order}</span>}
             </div>
         </div>
     );

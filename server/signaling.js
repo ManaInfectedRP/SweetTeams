@@ -8,6 +8,8 @@ const rooms = new Map();
 const roomModerators = new Map();
 // Store active screen sharer per room: roomId -> { socketId, username }
 const roomScreenSharers = new Map();
+// Store raised hands per room: roomId -> Map of socketId -> { order, timestamp, username }
+const roomRaisedHands = new Map();
 
 export function setupSignaling(httpServer) {
     const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -271,6 +273,90 @@ export function setupSignaling(httpServer) {
                 });
             }
         });
+        
+        // Handle raise hand
+        socket.on('raise-hand', () => {
+            if (!socket.roomId) return;
+            
+            if (!roomRaisedHands.has(socket.roomId)) {
+                roomRaisedHands.set(socket.roomId, new Map());
+            }
+            
+            const raisedHands = roomRaisedHands.get(socket.roomId);
+            const order = raisedHands.size + 1;
+            const timestamp = Date.now();
+            
+            raisedHands.set(socket.id, {
+                order,
+                timestamp,
+                username: socket.username
+            });
+            
+            // Broadcast to everyone in the room
+            io.to(socket.roomId).emit('hand-raised', {
+                socketId: socket.id,
+                username: socket.username,
+                order,
+                timestamp
+            });
+            
+            console.log(`${socket.username} raised hand (order: ${order})`);
+        });
+        
+        // Handle lower hand
+        socket.on('lower-hand', () => {
+            if (!socket.roomId) return;
+            
+            const raisedHands = roomRaisedHands.get(socket.roomId);
+            if (raisedHands && raisedHands.has(socket.id)) {
+                raisedHands.delete(socket.id);
+                
+                // Reorder remaining hands
+                const sortedHands = Array.from(raisedHands.entries())
+                    .sort((a, b) => a[1].timestamp - b[1].timestamp);
+                
+                sortedHands.forEach(([sid, data], index) => {
+                    data.order = index + 1;
+                    raisedHands.set(sid, data);
+                });
+                
+                // Broadcast to everyone
+                io.to(socket.roomId).emit('hand-lowered', {
+                    socketId: socket.id
+                });
+                
+                // Send updated orders to all
+                sortedHands.forEach(([sid, data]) => {
+                    io.to(socket.roomId).emit('hand-raised', {
+                        socketId: sid,
+                        username: data.username,
+                        order: data.order,
+                        timestamp: data.timestamp
+                    });
+                });
+                
+                console.log(`${socket.username} lowered hand`);
+            }
+        });
+        
+        // Clear all hands (admin/moderator only)
+        socket.on('clear-all-hands', async () => {
+            if (!socket.roomId) return;
+            
+            const room = await findRoomByLinkCode(socket.roomId);
+            const isAdmin = socket.userId === room?.creator_id;
+            const moderators = roomModerators.get(socket.roomId) || new Set();
+            const isModerator = moderators.has(socket.userId);
+            
+            if (!isAdmin && !isModerator) {
+                return; // Only admin/moderators can clear all hands
+            }
+            
+            roomRaisedHands.delete(socket.roomId);
+            io.to(socket.roomId).emit('all-hands-lowered');
+            
+            console.log(`${socket.username} cleared all raised hands`);
+        });
 
         // Handle disconnect
         socket.on('disconnect', () => {
@@ -286,6 +372,23 @@ export function setupSignaling(httpServer) {
                     roomScreenSharers.delete(socket.roomId);
                     // Notify others that screen sharing stopped
                     socket.to(socket.roomId).emit('user-stopped-screen-sharing', {
+                        socketId: socket.id
+                    });
+                }
+                
+                // Clear raised hand if this user had one
+                const raisedHands = roomRaisedHands.get(socket.roomId);
+                if (raisedHands && raisedHands.has(socket.id)) {
+                    raisedHands.delete(socket.id);
+                    // Reorder remaining hands
+                    const sortedHands = Array.from(raisedHands.entries())
+                        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+                    sortedHands.forEach(([sid, data], index) => {
+                        data.order = index + 1;
+                        raisedHands.set(sid, data);
+                    });
+                    // Notify others
+                    socket.to(socket.roomId).emit('hand-lowered', {
                         socketId: socket.id
                     });
                 }

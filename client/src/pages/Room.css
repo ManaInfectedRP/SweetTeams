@@ -44,6 +44,31 @@
     color: var(--color-text-secondary);
 }
 
+.raised-hands-indicator {
+    padding: var(--space-xs) var(--space-md);
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    animation: handIndicatorPulse 2s ease-in-out infinite;
+}
+
+@keyframes handIndicatorPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+    }
+}
+
 .room-content {
     flex: 1;
     display: flex;

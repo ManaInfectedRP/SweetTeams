@@ -30,6 +30,14 @@ export function useWebRTC(roomId, token, username) {
 
     // Track media state of all participants (socketId -> { audio: bool, video: bool })
     const [participantStates, setParticipantStates] = useState(new Map());
+    
+    // Track who is currently speaking (socketId -> boolean)
+    const [speakingParticipants, setSpeakingParticipants] = useState(new Map());
+    const speakingTimeoutsRef = useRef(new Map());
+    
+    // Track raised hands: Map of socketId -> { order: number, timestamp: number, username: string }
+    const [raisedHands, setRaisedHands] = useState(new Map());
+    const [isHandRaised, setIsHandRaised] = useState(false);
 
     const socketRef = useRef(null);
     const peersRef = useRef(new Map());
@@ -132,6 +140,11 @@ export function useWebRTC(roomId, token, username) {
                 
                 localStreamRef.current = processedStream;
                 setLocalStream(processedStream);
+                
+                // Set up audio level detection for local stream
+                if (audioTrackToUse) {
+                    setupAudioLevelDetection(processedStream, 'local');
+                }
                 
                 // Store initial device ID and facing mode
                 if (videoTrack) {
@@ -372,6 +385,43 @@ export function useWebRTC(roomId, token, username) {
                 alert('Du har blivit utsparkad från rummet av ägaren.');
                 window.location.href = '/dashboard';
             });
+            
+            // --- HAND RAISING EVENTS ---
+            socket.on('hand-raised', ({ socketId, username, order, timestamp }) => {
+                if (!mounted) return;
+                // Check if this is our own hand being echoed back
+                const isOwnHand = socketId === socket.id;
+                const keyToUse = isOwnHand ? 'local' : socketId;
+                
+                setRaisedHands(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(keyToUse, { order, timestamp, username });
+                    return newMap;
+                });
+            });
+            
+            socket.on('hand-lowered', ({ socketId }) => {
+                if (!mounted) return;
+                // Check if this is our own hand
+                const isOwnHand = socketId === socket.id;
+                const keyToUse = isOwnHand ? 'local' : socketId;
+                
+                setRaisedHands(prev => {
+                    const newMap = new Map(prev);
+                    newMap.delete(keyToUse);
+                    // Reorder remaining hands
+                    const sortedHands = Array.from(newMap.entries())
+                        .sort((a, b) => a[1].timestamp - b[1].timestamp)
+                        .map(([sid, data], index) => [sid, { ...data, order: index + 1 }]);
+                    return new Map(sortedHands);
+                });
+            });
+            
+            socket.on('all-hands-lowered', () => {
+                if (!mounted) return;
+                setRaisedHands(new Map());
+                setIsHandRaised(false);
+            });
         };
 
         init();
@@ -452,6 +502,9 @@ export function useWebRTC(roomId, token, username) {
         peer.on('stream', (stream) => {
             console.log('Received initial stream from peer:', socketId, 'tracks:', stream.getTracks().map(t => `${t.kind}:${t.id.substring(0,8)}`));
             setRemoteStreams(prev => new Map(prev).set(socketId, { stream, username: peerUsername }));
+            
+            // Set up audio level detection for remote peer
+            setupAudioLevelDetection(stream, socketId);
         });
         
         // Listen for track events to handle track replacements (e.g., screen sharing)
@@ -535,6 +588,66 @@ export function useWebRTC(roomId, token, username) {
 
         if (offer) peer.signal(offer);
         peersRef.current.set(socketId, peer);
+    };
+    
+    // Setup audio level detection for a stream
+    const setupAudioLevelDetection = (stream, socketId) => {
+        const audioTrack = stream.getAudioTracks()[0];
+        if (!audioTrack) return;
+        
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.8;
+            source.connect(analyser);
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const SPEAKING_THRESHOLD = 20; // Adjust this value for sensitivity
+            const SPEAKING_TIMEOUT = 300; // ms to wait before marking as not speaking
+            
+            const checkAudioLevel = () => {
+                analyser.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                
+                const isSpeaking = average > SPEAKING_THRESHOLD;
+                
+                if (isSpeaking) {
+                    // Mark as speaking
+                    setSpeakingParticipants(prev => {
+                        const newMap = new Map(prev);
+                        newMap.set(socketId, true);
+                        return newMap;
+                    });
+                    
+                    // Clear existing timeout
+                    if (speakingTimeoutsRef.current.has(socketId)) {
+                        clearTimeout(speakingTimeoutsRef.current.get(socketId));
+                    }
+                    
+                    // Set timeout to mark as not speaking
+                    const timeout = setTimeout(() => {
+                        setSpeakingParticipants(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(socketId, false);
+                            return newMap;
+                        });
+                    }, SPEAKING_TIMEOUT);
+                    
+                    speakingTimeoutsRef.current.set(socketId, timeout);
+                }
+                
+                // Continue checking if track is still live
+                if (audioTrack.readyState === 'live') {
+                    requestAnimationFrame(checkAudioLevel);
+                }
+            };
+            
+            checkAudioLevel();
+        } catch (err) {
+            console.warn('Could not set up audio level detection:', err);
+        }
     };
 
     const toggleCamera = () => {
@@ -1068,6 +1181,24 @@ export function useWebRTC(roomId, token, username) {
             socketRef.current.emit('delete-message', { id });
         }
     };
+    
+    const toggleRaiseHand = () => {
+        if (socketRef.current) {
+            if (isHandRaised) {
+                socketRef.current.emit('lower-hand');
+                setIsHandRaised(false);
+            } else {
+                socketRef.current.emit('raise-hand');
+                setIsHandRaised(true);
+            }
+        }
+    };
+    
+    const clearAllHands = () => {
+        if (socketRef.current) {
+            socketRef.current.emit('clear-all-hands');
+        }
+    };
 
     return {
         localStream,
@@ -1083,7 +1214,10 @@ export function useWebRTC(roomId, token, username) {
         participants,
         messages,
         participantStates, // New export
+        speakingParticipants, // Track who is speaking
         activeScreenSharer, // Track who is sharing screen
+        raisedHands, // Map of socketId -> { order, timestamp, username }
+        isHandRaised, // Local hand raised state
         micVolume,
         noiseReduction,
         spatialAudio,
@@ -1098,6 +1232,8 @@ export function useWebRTC(roomId, token, username) {
         sendAdminCommand,
         deleteMessage,
         setModerator,
+        toggleRaiseHand,
+        clearAllHands,
         handleMicVolumeChange,
         handleNoiseReductionChange,
         handleSpatialAudioChange
