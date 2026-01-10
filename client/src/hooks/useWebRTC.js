@@ -108,8 +108,15 @@ export function useWebRTC(roomId, token, username) {
                 
                 // Apply initial audio processing
                 const audioTrack = stream.getAudioTracks()[0];
+                let processedAudioTrack = audioTrack;
                 if (audioTrack) {
-                    applyAudioProcessing(audioTrack);
+                    const processed = applyAudioProcessing(audioTrack);
+                    if (processed) {
+                        processedAudioTrack = processed;
+                        // Replace the original audio track with processed one
+                        localStreamRef.current.removeTrack(audioTrack);
+                        localStreamRef.current.addTrack(processedAudioTrack);
+                    }
                     const aSettings = audioTrack.getSettings();
                     if (aSettings.deviceId) {
                         setSelectedMicrophoneId(aSettings.deviceId);
@@ -677,20 +684,22 @@ export function useWebRTC(roomId, token, username) {
             const newAudioTrack = stream.getAudioTracks()[0];
             if (!newAudioTrack) throw new Error('Ingen ljud-spår hittades');
             if (currentEnabled !== undefined) newAudioTrack.enabled = currentEnabled;
+            
+            // Apply audio processing and get processed track
+            const processedTrack = applyAudioProcessing(newAudioTrack);
+            const trackToUse = processedTrack || newAudioTrack;
+            
             if (currentAudioTrack) {
                 currentAudioTrack.stop();
                 localStreamRef.current.removeTrack(currentAudioTrack);
             }
-            localStreamRef.current.addTrack(newAudioTrack);
+            localStreamRef.current.addTrack(trackToUse);
             setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
             setSelectedMicrophoneId(deviceId);
             
-            // Reapply audio processing
-            applyAudioProcessing(newAudioTrack);
-            
             peersRef.current.forEach(peer => {
                 const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
-                if (sender) sender.replaceTrack(newAudioTrack);
+                if (sender) sender.replaceTrack(trackToUse);
             });
             if (socketRef.current) {
                 socketRef.current.emit('media-state-change', { type: 'audio', enabled: newAudioTrack.enabled });
@@ -703,7 +712,7 @@ export function useWebRTC(roomId, token, username) {
 
     // Apply audio processing (volume, noise reduction, spatial audio)
     const applyAudioProcessing = (audioTrack) => {
-        if (!audioTrack) return;
+        if (!audioTrack) return null;
         
         try {
             // Clean up previous audio context if exists
@@ -714,22 +723,57 @@ export function useWebRTC(roomId, token, username) {
                 gainNodeRef.current.disconnect();
             }
             
-            // Note: We don't use audio context for local audio to avoid echo/feedback
-            // Volume control and noise reduction are handled via MediaStream constraints
-            // This function is kept for future audio processing needs
+            // Create or reuse audio context
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const audioContext = audioContextRef.current;
+            const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
+            const gainNode = audioContext.createGain();
+            const destination = audioContext.createMediaStreamDestination();
+            
+            // Apply volume (0-100% mapped to 0-2 gain)
+            gainNode.gain.value = micVolume / 50;
+            
+            // Connect nodes: source -> gain -> destination (NOT audioContext.destination)
+            // This processes the audio but doesn't play it back to you
+            source.connect(gainNode);
+            gainNode.connect(destination);
+            
+            sourceNodeRef.current = source;
+            gainNodeRef.current = gainNode;
+            
+            // Return the processed audio track
+            return destination.stream.getAudioTracks()[0];
             
         } catch (err) {
             console.error('Failed to apply audio processing:', err);
+            return audioTrack; // Fallback to original track
         }
     };
 
     // Handle volume change
-    const handleMicVolumeChange = (volume) => {
+    const handleMicVolumeChange = async (volume) => {
         setMicVolume(volume);
-        // Note: Browser MediaStream doesn't support direct volume control
-        // Volume would need to be processed server-side or via Web Audio API
-        // For now, we just store the preference
-        console.log('Microphone volume set to:', volume + '%');
+        
+        if (gainNodeRef.current) {
+            // Update gain value (0-100% mapped to 0-2 gain)
+            gainNodeRef.current.gain.value = volume / 50;
+        } else if (localStreamRef.current) {
+            // If no gain node exists yet, reapply processing
+            const audioTrack = localStreamRef.current.getAudioTracks()[0];
+            if (audioTrack) {
+                const processedTrack = applyAudioProcessing(audioTrack);
+                if (processedTrack && processedTrack !== audioTrack) {
+                    // Replace track in peers
+                    peersRef.current.forEach(peer => {
+                        const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
+                        if (sender) sender.replaceTrack(processedTrack);
+                    });
+                }
+            }
+        }
     };
 
     // Handle noise reduction change
@@ -755,21 +799,22 @@ export function useWebRTC(roomId, token, username) {
                 if (newAudioTrack) {
                     newAudioTrack.enabled = currentEnabled;
                     
+                    // Apply audio processing and get processed track
+                    const processedTrack = applyAudioProcessing(newAudioTrack);
+                    const trackToUse = processedTrack || newAudioTrack;
+                    
                     if (currentAudioTrack) {
                         currentAudioTrack.stop();
                         localStreamRef.current.removeTrack(currentAudioTrack);
                     }
                     
-                    localStreamRef.current.addTrack(newAudioTrack);
+                    localStreamRef.current.addTrack(trackToUse);
                     setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-                    
-                    // Reapply audio processing
-                    applyAudioProcessing(newAudioTrack);
                     
                     // Update peers
                     peersRef.current.forEach(peer => {
                         const sender = peer._pc.getSenders().find(s => s.track?.kind === 'audio');
-                        if (sender) sender.replaceTrack(newAudioTrack);
+                        if (sender) sender.replaceTrack(trackToUse);
                     });
                 }
             } catch (err) {
