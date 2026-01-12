@@ -23,7 +23,23 @@ db.serialize(() => {
       username TEXT UNIQUE NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      profile_picture TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+    db.run(`
+    CREATE TABLE IF NOT EXISTS user_preferences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER UNIQUE NOT NULL,
+      default_microphone TEXT,
+      default_camera TEXT,
+      default_speaker TEXT,
+      notifications_enabled INTEGER DEFAULT 1,
+      auto_join_audio INTEGER DEFAULT 1,
+      auto_join_video INTEGER DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
@@ -228,6 +244,114 @@ export async function cleanupExpiredMagicLinks() {
             function (err) {
                 if (err) reject(err);
                 else resolve(this.changes);
+            }
+        );
+    });
+}
+
+// User profile functions
+export async function updateUserProfile(userId, updates) {
+    const fields = [];
+    const values = [];
+    
+    if (updates.username !== undefined) {
+        fields.push('username = ?');
+        values.push(updates.username);
+    }
+    if (updates.profilePicture !== undefined) {
+        fields.push('profile_picture = ?');
+        values.push(updates.profilePicture);
+    }
+    
+    if (fields.length === 0) {
+        return Promise.resolve();
+    }
+    
+    values.push(userId);
+    
+    return new Promise((resolve, reject) => {
+        db.run(
+            `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+            values,
+            function (err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            }
+        );
+    });
+}
+
+export async function getUserPreferences(userId) {
+    return await dbGet('SELECT * FROM user_preferences WHERE user_id = ?', [userId]);
+}
+
+export function createUserPreferences(userId, preferences = {}) {
+    return new Promise((resolve, reject) => {
+        db.run(
+            `INSERT INTO user_preferences (
+                user_id, default_microphone, default_camera, default_speaker,
+                notifications_enabled, auto_join_audio, auto_join_video
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                userId,
+                preferences.defaultMicrophone || null,
+                preferences.defaultCamera || null,
+                preferences.defaultSpeaker || null,
+                preferences.notificationsEnabled !== undefined ? preferences.notificationsEnabled : 1,
+                preferences.autoJoinAudio !== undefined ? preferences.autoJoinAudio : 1,
+                preferences.autoJoinVideo !== undefined ? preferences.autoJoinVideo : 1
+            ],
+            function (err) {
+                if (err) reject(err);
+                else resolve({ lastID: this.lastID });
+            }
+        );
+    });
+}
+
+export async function updateUserPreferences(userId, preferences) {
+    const fields = [];
+    const values = [];
+    
+    if (preferences.defaultMicrophone !== undefined) {
+        fields.push('default_microphone = ?');
+        values.push(preferences.defaultMicrophone);
+    }
+    if (preferences.defaultCamera !== undefined) {
+        fields.push('default_camera = ?');
+        values.push(preferences.defaultCamera);
+    }
+    if (preferences.defaultSpeaker !== undefined) {
+        fields.push('default_speaker = ?');
+        values.push(preferences.defaultSpeaker);
+    }
+    if (preferences.notificationsEnabled !== undefined) {
+        fields.push('notifications_enabled = ?');
+        values.push(preferences.notificationsEnabled ? 1 : 0);
+    }
+    if (preferences.autoJoinAudio !== undefined) {
+        fields.push('auto_join_audio = ?');
+        values.push(preferences.autoJoinAudio ? 1 : 0);
+    }
+    if (preferences.autoJoinVideo !== undefined) {
+        fields.push('auto_join_video = ?');
+        values.push(preferences.autoJoinVideo ? 1 : 0);
+    }
+    
+    if (fields.length === 0) {
+        return Promise.resolve();
+    }
+    
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(userId);
+    
+    return new Promise((resolve, reject) => {
+        db.run(
+            `UPDATE user_preferences SET ${fields.join(', ')} WHERE user_id = ?`,
+            values,
+            function (err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
             }
         );
     });
