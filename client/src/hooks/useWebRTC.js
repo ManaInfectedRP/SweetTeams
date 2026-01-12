@@ -64,7 +64,7 @@ export function useWebRTC(roomId, token) {
             return track;
         };
 
-        const getMediaStream = async (videoConstraints = true) => {
+        const getMediaStream = async (videoConstraints = true, audioDeviceId = null, videoDeviceId = null) => {
             try {
                 const audioConstraints = {
                     echoCancellation: true,
@@ -72,15 +72,38 @@ export function useWebRTC(roomId, token) {
                     autoGainControl: true
                 };
                 
+                // Add device ID if specified
+                if (audioDeviceId) {
+                    audioConstraints.deviceId = { exact: audioDeviceId };
+                }
+                
+                let videoConstraintsObj = videoConstraints;
+                if (videoConstraints === true) {
+                    videoConstraintsObj = { facingMode: facingMode };
+                    if (videoDeviceId) {
+                        videoConstraintsObj.deviceId = { exact: videoDeviceId };
+                    }
+                } else if (videoConstraints && typeof videoConstraints === 'object' && videoDeviceId) {
+                    videoConstraintsObj = { ...videoConstraints, deviceId: { exact: videoDeviceId } };
+                }
+                
                 const constraints = {
                     audio: audioConstraints,
-                    video: videoConstraints === true ? { facingMode: facingMode } : videoConstraints
+                    video: videoConstraintsObj
                 };
                 return await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.warn('Could not get video+audio, trying audio only with dummy video:', err);
                 try {
-                    const audioStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                    const audioConstraints = {
+                        echoCancellation: true,
+                        noiseSuppression: noiseReduction,
+                        autoGainControl: true
+                    };
+                    if (audioDeviceId) {
+                        audioConstraints.deviceId = { exact: audioDeviceId };
+                    }
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: audioConstraints });
                     const videoTrack = createDummyVideoTrack();
                     audioStream.addTrack(videoTrack);
                     if (mounted) setIsCameraOn(false);
@@ -99,7 +122,32 @@ export function useWebRTC(roomId, token) {
         };
 
         const init = async () => {
-            const stream = await getMediaStream();
+            // Fetch user preferences
+            let preferences = null;
+            try {
+                const response = await fetch(`${config.apiUrl}/api/profile/preferences`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    preferences = await response.json();
+                    console.log('Loaded user preferences:', preferences);
+                }
+            } catch (err) {
+                console.warn('Could not fetch preferences:', err);
+            }
+
+            // Get initial camera state from preferences (default to true if not set)
+            const initialCameraOn = preferences?.autoJoinVideo !== false;
+            const initialMicOn = preferences?.autoJoinAudio !== false;
+            
+            // Use default devices from preferences if available
+            const defaultAudioDevice = preferences?.defaultMicrophone || null;
+            const defaultVideoDevice = preferences?.defaultCamera || null;
+            const defaultSpeaker = preferences?.defaultSpeaker || null;
+
+            const stream = await getMediaStream(initialCameraOn, defaultAudioDevice, defaultVideoDevice);
 
             if (!mounted) {
                 if (stream) stream.getTracks().forEach(track => track.stop());
@@ -136,6 +184,24 @@ export function useWebRTC(roomId, token) {
                 
                 localStreamRef.current = processedStream;
                 setLocalStream(processedStream);
+                
+                // Apply initial states from preferences
+                // Disable tracks if preferences say to start with them off
+                if (!initialMicOn && audioTrackToUse) {
+                    audioTrackToUse.enabled = false;
+                }
+                if (!initialCameraOn && videoTrack && !videoTrack.label.includes('dummy')) {
+                    videoTrack.enabled = false;
+                }
+                
+                // Set initial camera and mic states from preferences
+                setIsCameraOn(initialCameraOn && videoTrack && !videoTrack.label.includes('dummy'));
+                setIsMicOn(initialMicOn && audioTrackToUse && originalAudioTrack.readyState === 'live');
+                
+                // Set default speaker if available
+                if (defaultSpeaker) {
+                    setSelectedSpeakerId(defaultSpeaker);
+                }
                 
                 // Set up audio level detection for local stream
                 if (audioTrackToUse) {
