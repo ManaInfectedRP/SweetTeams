@@ -28,6 +28,26 @@ db.serialize(() => {
     )
   `);
 
+    // Migration: Add profile_picture column if it doesn't exist
+    db.all("PRAGMA table_info(users)", [], (err, columns) => {
+        if (err) {
+            console.error('Error checking users table:', err);
+            return;
+        }
+        
+        const hasProfilePicture = columns.some(col => col.name === 'profile_picture');
+        
+        if (!hasProfilePicture) {
+            db.run('ALTER TABLE users ADD COLUMN profile_picture TEXT', (err) => {
+                if (err) {
+                    console.error('Error adding profile_picture column:', err);
+                } else {
+                    console.log('✅ Added profile_picture column to users table');
+                }
+            });
+        }
+    });
+
     db.run(`
     CREATE TABLE IF NOT EXISTS user_preferences (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,7 +145,7 @@ export async function findUserByUsername(username) {
 }
 
 export async function findUserById(id) {
-    return await dbGet('SELECT id, username, email, created_at FROM users WHERE id = ?', [id]);
+    return await dbGet('SELECT id, username, email, profile_picture, created_at FROM users WHERE id = ?', [id]);
 }
 
 export function createRoom(name, creatorId, linkCode) {

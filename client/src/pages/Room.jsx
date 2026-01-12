@@ -193,6 +193,7 @@ export default function Room() {
                         screenStream={screenStream}
                         isCameraOn={isCameraOn}
                         username={user?.username}
+                        profilePicture={user?.profilePicture}
                         creatorId={room?.creatorId}
                         currentUserId={user?.id}
                         isHost={user?.id === room?.creatorId}

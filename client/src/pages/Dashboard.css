@@ -88,6 +88,14 @@
     color: white;
 }
 
+.user-avatar-img {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    border: 2px solid var(--color-primary);
+}
+
 .user-name {
     font-weight: var(--font-weight-medium);
     color: var(--color-text-primary);

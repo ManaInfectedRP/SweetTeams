@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { config } from '../config';
+import ProfileSettings from '../components/ProfileSettings';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -10,6 +11,7 @@ export default function Dashboard() {
     const [creating, setCreating] = useState(false);
     const [roomName, setRoomName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [error, setError] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const { user, token, logout } = useAuth();
@@ -94,9 +96,24 @@ export default function Dashboard() {
                         </div>
                         <div className="nav-actions">
                             <div className="user-info">
-                                <span className="user-avatar">{user?.username?.[0]?.toUpperCase()}</span>
+                                {user?.profilePicture ? (
+                                    <img 
+                                        src={`${config.apiUrl}${user.profilePicture}`}
+                                        alt="Profile" 
+                                        className="user-avatar-img"
+                                    />
+                                ) : (
+                                    <span className="user-avatar">{user?.username?.[0]?.toUpperCase()}</span>
+                                )}
                                 <span className="user-name">{user?.username}</span>
                             </div>
+                            <button 
+                                onClick={() => setShowSettings(true)} 
+                                className="btn btn-secondary btn-sm"
+                                title="Settings"
+                            >
+                                ⚙️
+                            </button>
                             <button onClick={logout} className="btn btn-secondary btn-sm">
                                 Logga ut
                             </button>
@@ -245,6 +262,10 @@ export default function Dashboard() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {showSettings && (
+                <ProfileSettings onClose={() => setShowSettings(false)} />
             )}
         </div>
     );

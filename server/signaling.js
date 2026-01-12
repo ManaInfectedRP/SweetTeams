@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { deleteRoom, findRoomByLinkCode } from './database.js';
+import { deleteRoom, findRoomByLinkCode, findUserById } from './database.js';
 
 // Store active rooms and their participants
 const rooms = new Map();
@@ -50,7 +50,7 @@ export function setupSignaling(httpServer) {
         console.log(`User connected: ${socket.username} (${socket.id})`);
 
         // Join room
-        socket.on('join-room', (roomId) => {
+        socket.on('join-room', async (roomId) => {
             socket.join(roomId);
             socket.roomId = roomId;
 
@@ -59,11 +59,21 @@ export function setupSignaling(httpServer) {
                 rooms.set(roomId, new Map());
             }
 
+            // Get user profile picture
+            let profilePicture = null;
+            try {
+                const userProfile = await findUserById(socket.userId);
+                profilePicture = userProfile?.profile_picture || null;
+            } catch (err) {
+                console.error('Error fetching user profile:', err);
+            }
+
             const roomParticipants = rooms.get(roomId);
             roomParticipants.set(socket.id, {
                 userId: socket.userId,
                 username: socket.username,
                 socketId: socket.id,
+                profilePicture: profilePicture,
                 role: 'participant' // Will be updated below
             });
 
@@ -71,7 +81,8 @@ export function setupSignaling(httpServer) {
             socket.to(roomId).emit('user-joined', {
                 socketId: socket.id,
                 userId: socket.userId,
-                username: socket.username
+                username: socket.username,
+                profilePicture: profilePicture
             });
 
             // Send current participants to the new user

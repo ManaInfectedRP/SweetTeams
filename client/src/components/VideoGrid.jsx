@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
+import { config } from '../config';
 import './VideoGrid.css';
 
 export default function VideoGrid({
@@ -7,12 +8,13 @@ export default function VideoGrid({
     screenStream,
     isCameraOn,
     username,
+    profilePicture,
     creatorId,
     currentUserId,
     isHost,
     onAdminAction,
         onSetModerator,
-    participants = [], // Array of { socketId, userId, username }
+    participants = [], // Array of { socketId, userId, username, profilePicture }
     participantStates = new Map(), // Map of socketId -> { audio, video }
     speakingParticipants = new Map(), // Map of socketId -> boolean (who is speaking)
     raisedHands = new Map(), // Map of socketId -> { order, timestamp, username }
@@ -209,7 +211,15 @@ export default function VideoGrid({
                                 />
                                 {!isCameraOn && (
                                     <div className="video-placeholder">
-                                        <span>{username?.[0]?.toUpperCase()}</span>
+                                        {profilePicture ? (
+                                            <img
+                                                src={`${config.apiUrl}${profilePicture}`}
+                                                alt={username}
+                                                className="placeholder-profile-pic"
+                                            />
+                                        ) : (
+                                            <span>{username?.[0]?.toUpperCase()}</span>
+                                        )}
                                     </div>
                                 )}
                                 <div className="user-label">
@@ -243,6 +253,7 @@ export default function VideoGrid({
                                     isSpeaking={isSpeaking}
                                     handRaised={handRaised}
                                     selectedSpeakerId={selectedSpeakerId}
+                                    profilePicture={participant?.profilePicture}
                                 />
                             );
                         })}
@@ -272,7 +283,15 @@ export default function VideoGrid({
                                 />
                                 {!isLocalVideoVisible && (
                                     <div className="video-placeholder">
-                                        <span>{username?.[0]?.toUpperCase()}</span>
+                                        {profilePicture ? (
+                                            <img
+                                                src={`${config.apiUrl}${profilePicture}`}
+                                                alt={username}
+                                                className="placeholder-profile-pic"
+                                            />
+                                        ) : (
+                                            <span>{username?.[0]?.toUpperCase()}</span>
+                                        )}
                                     </div>
                                 )}
                                 <div className="user-label">
@@ -307,6 +326,7 @@ export default function VideoGrid({
                             onAdminAction={handleAdminAction}
                                                         onSetModerator={onSetModerator}
                             selectedSpeakerId={selectedSpeakerId}
+                            profilePicture={participant?.profilePicture}
                         />
                     );
                 })}
@@ -334,7 +354,7 @@ export default function VideoGrid({
     );
 }
 
-function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId }) {
+function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId, profilePicture }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -436,7 +456,15 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
 
             {!isVideoEnabled && (
                 <div className="video-placeholder">
-                    <span>{remote.username?.[0]?.toUpperCase()}</span>
+                    {profilePicture ? (
+                        <img
+                            src={`${config.apiUrl}${profilePicture}`}
+                            alt={remote.username}
+                            className="placeholder-profile-pic"
+                        />
+                    ) : (
+                        <span>{remote.username?.[0]?.toUpperCase()}</span>
+                    )}
                 </div>
             )}
 
@@ -476,7 +504,7 @@ function ScreenShareVideo({ stream, username, label }) {
 }
 
 // RemoteThumbnail component for participant thumbnails during screen share
-function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId }) {
+function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId, profilePicture }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -523,7 +551,15 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
 
             {!isVideoEnabled && (
                 <div className="video-placeholder">
-                    <span>{remote.username?.[0]?.toUpperCase()}</span>
+                    {profilePicture ? (
+                        <img
+                            src={`${config.apiUrl}${profilePicture}`}
+                            alt={remote.username}
+                            className="placeholder-profile-pic"
+                        />
+                    ) : (
+                        <span>{remote.username?.[0]?.toUpperCase()}</span>
+                    )}
                 </div>
             )}
 

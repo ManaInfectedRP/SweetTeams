@@ -13,6 +13,9 @@ yarn.lock
 *.sqlite
 *.sqlite3
 
+# Uploads
+server/uploads/
+
 # Build output
 dist/
 build/

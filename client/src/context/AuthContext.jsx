@@ -14,31 +14,58 @@ export function AuthProvider({ children }) {
                            window.location.hostname === '127.0.0.1';
         
         if (isLocalhost && !token) {
-            // Skapa en dev-användare direkt utan backend
-            const devUser = {
-                id: 'dev-user',
-                username: 'SweetTeams-Dev',
-                email: 'dev@localhost'
-            };
+            // Skapa en dev-token
             const devToken = 'dev-token-' + Date.now();
-            
             localStorage.setItem('token', devToken);
             setToken(devToken);
-            setUser(devUser);
-            setLoading(false);
+            
+            // Fetch dev user data from backend
+            fetch(`${config.apiUrl}/api/auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${devToken}`
+                }
+            })
+                .then(res => res.ok ? res.json() : Promise.reject())
+                .then(data => {
+                    setUser(data.user);
+                })
+                .catch(() => {
+                    // Fallback to basic dev user
+                    setUser({
+                        id: 'dev-user',
+                        username: 'SweetTeams-Dev',
+                        email: 'dev@localhost'
+                    });
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
             return;
         }
 
         if (token) {
-            // Hoppa över verifiering för dev-tokens
+            // For dev-tokens, fetch from backend
             if (token.startsWith('dev-token-')) {
-                const devUser = {
-                    id: 'dev-user',
-                    username: 'SweetTeams-Dev',
-                    email: 'dev@localhost'
-                };
-                setUser(devUser);
-                setLoading(false);
+                fetch(`${config.apiUrl}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                    .then(res => res.ok ? res.json() : Promise.reject())
+                    .then(data => {
+                        setUser(data.user);
+                    })
+                    .catch(() => {
+                        // Fallback to basic dev user
+                        setUser({
+                            id: 'dev-user',
+                            username: 'SweetTeams-Dev',
+                            email: 'dev@localhost'
+                        });
+                    })
+                    .finally(() => {
+                        setLoading(false);
+                    });
                 return;
             }
 
@@ -141,8 +168,23 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    const updateUser = (updates) => {
+        setUser(prevUser => ({
+            ...prevUser,
+            ...updates
+        }));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, requestMagicLink, verifyMagicLink, logout, loading }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            token, 
+            requestMagicLink, 
+            verifyMagicLink, 
+            logout, 
+            updateUser,
+            loading 
+        }}>
             {children}
         </AuthContext.Provider>
     );

@@ -180,11 +180,11 @@ export function useWebRTC(roomId, token) {
                 setParticipants(participantsList);
             });
 
-            socket.on('user-joined', ({ socketId, userId, username: peerUsername }) => {
+            socket.on('user-joined', ({ socketId, userId, username: peerUsername, profilePicture }) => {
                 if (!mounted) return;
                 setParticipants(prev => {
                     if (prev.some(p => p.socketId === socketId)) return prev;
-                    return [...prev, { socketId, userId, username: peerUsername, role: 'participant' }];
+                    return [...prev, { socketId, userId, username: peerUsername, profilePicture, role: 'participant' }];
                 });
                 createPeer(socketId, true, peerUsername, null, socket);
             });
