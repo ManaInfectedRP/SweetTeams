@@ -57,7 +57,7 @@ export default function Room() {
         handleMicVolumeChange,
         handleNoiseReductionChange,
         handleSpatialAudioChange
-    } = useWebRTC(linkCode, token, user?.username);
+    } = useWebRTC(linkCode, token);
 
     useEffect(() => {
         fetchRoom();

@@ -97,6 +97,40 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
         return userReaction?.emoji;
     };
 
+    const handlePaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            
+            // Check if the pasted item is an image
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                
+                const file = item.getAsFile();
+                if (!file) continue;
+
+                // Check file size (limit to 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Bilden är för stor. Max 5MB.');
+                    continue;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    onSendMessage({ 
+                        text: file.name || 'Inklistrad bild', 
+                        type: 'image', 
+                        imageData: event.target.result 
+                    });
+                };
+                reader.readAsDataURL(file);
+                break;
+            }
+        }
+    };
+
     return (
         <div className="chat-panel">
             <div className="chat-header">
@@ -273,6 +307,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                     placeholder="Skriv ett meddelande..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    onPaste={handlePaste}
                 />
                 <button type="submit" className="chat-send-btn" disabled={!message.trim()}>
                     ➤

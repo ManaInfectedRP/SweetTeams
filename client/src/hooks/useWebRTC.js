@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 import { config } from '../config';
 
-export function useWebRTC(roomId, token, username) {
+export function useWebRTC(roomId, token) {
     const [localStream, setLocalStream] = useState(null);
     const [remoteStreams, setRemoteStreams] = useState(new Map());
     const [screenStream, setScreenStream] = useState(null);
@@ -11,7 +11,6 @@ export function useWebRTC(roomId, token, username) {
     const [isMicOn, setIsMicOn] = useState(true);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [facingMode, setFacingMode] = useState('user'); // 'user' = front, 'environment' = back
-    const [currentDeviceId, setCurrentDeviceId] = useState(null);
     // Device selection state
     const [devices, setDevices] = useState({ audioinput: [], videoinput: [], audiooutput: [] });
     const [selectedCameraId, setSelectedCameraId] = useState(null);
@@ -46,9 +45,6 @@ export function useWebRTC(roomId, token, username) {
     const audioContextRef = useRef(null);
     const gainNodeRef = useRef(null);
     const sourceNodeRef = useRef(null);
-
-    // Keep track of our own socket ID for state mapping
-    const mySocketId = socketRef.current?.id;
 
     useEffect(() => {
         if (!roomId || !token) return;
@@ -150,7 +146,6 @@ export function useWebRTC(roomId, token, username) {
                 if (videoTrack) {
                     const settings = videoTrack.getSettings();
                     if (settings.deviceId) {
-                        setCurrentDeviceId(settings.deviceId);
                         setSelectedCameraId(settings.deviceId);
                     }
                     if (settings.facingMode) {
@@ -487,7 +482,8 @@ export function useWebRTC(roomId, token, username) {
             if (audioContextRef.current) {
                 audioContextRef.current.close();
             }
-            peersRef.current.forEach(peer => peer.destroy());
+            const peers = peersRef.current;
+            peers.forEach(peer => peer.destroy());
             if (socketRef.current) {
                 socketRef.current.disconnect();
             }
@@ -756,9 +752,6 @@ export function useWebRTC(roomId, token, username) {
             
             // Get settings from new track
             const newSettings = newVideoTrack.getSettings();
-            if (newSettings.deviceId) {
-                setCurrentDeviceId(newSettings.deviceId);
-            }
             if (newSettings.facingMode) {
                 setFacingMode(newSettings.facingMode);
             } else {
@@ -877,10 +870,10 @@ export function useWebRTC(roomId, token, username) {
         try {
             // Clean up previous audio context if exists
             if (sourceNodeRef.current) {
-                try { sourceNodeRef.current.disconnect(); } catch (e) {}
+                try { sourceNodeRef.current.disconnect(); } catch { /* ignore disconnect errors */ }
             }
             if (gainNodeRef.current) {
-                try { gainNodeRef.current.disconnect(); } catch (e) {}
+                try { gainNodeRef.current.disconnect(); } catch { /* ignore disconnect errors */ }
             }
             
             // Create or reuse audio context
@@ -1216,11 +1209,6 @@ export function useWebRTC(roomId, token, username) {
         if (socketRef.current) {
             socketRef.current.emit('set-moderator', { targetUserId, isModerator });
         }
-    };
-
-    // Helper to get state
-    const getParticipantState = (socketId) => {
-        return participantStates.get(socketId) || { audio: true, video: true };
     };
 
     const deleteMessage = (id) => {
