@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import roomRoutes from './routes/rooms.js';
 import { setupSignaling } from './signaling.js';
+import { ensureDevUser } from './database.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,8 +35,20 @@ app.get('/api/health', (req, res) => {
 setupSignaling(httpServer);
 
 // Start server
-httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 SweetTeams server running on http://localhost:${PORT}`);
-    console.log(`📡 WebSocket signaling ready`);
-    console.log(`📱 Network access enabled - accessible from other devices`);
-});
+async function startServer() {
+    try {
+        // Ensure dev user exists before starting
+        await ensureDevUser();
+        
+        httpServer.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 SweetTeams server running on http://localhost:${PORT}`);
+            console.log(`📡 WebSocket signaling ready`);
+            console.log(`📱 Network access enabled - accessible from other devices`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();

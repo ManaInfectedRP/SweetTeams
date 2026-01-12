@@ -250,6 +250,19 @@ export function useWebRTC(roomId, token, username) {
                 setMessages(prev => prev.map(m => m.id === id ? { ...m, deleted: true, deletedBy } : m));
             });
 
+            socket.on('message-reaction', ({ messageId, emoji, username, userId }) => {
+                if (!mounted) return;
+                setMessages(prev => prev.map(m => {
+                    if (m.id === messageId) {
+                        // Remove any existing reaction from this user
+                        const reactions = (m.reactions || []).filter(r => r.userId !== userId);
+                        // Add new reaction
+                        return { ...m, reactions: [...reactions, { emoji, username, userId }] };
+                    }
+                    return m;
+                }));
+            });
+
             // --- STATE UPDATES ---
             socket.on('user-media-state-changed', ({ socketId, type, enabled }) => {
                 if (!mounted) return;
@@ -1176,9 +1189,20 @@ export function useWebRTC(roomId, token, username) {
         }
     };
 
-    const sendMessage = (message) => {
-        if (socketRef.current && message.trim()) {
-            socketRef.current.emit('chat-message', message);
+    const sendMessage = (data) => {
+        if (socketRef.current) {
+            // Support both old string format and new object format
+            if (typeof data === 'string') {
+                socketRef.current.emit('chat-message', { text: data, type: 'text' });
+            } else if (data.text || data.imageData) {
+                socketRef.current.emit('chat-message', data);
+            }
+        }
+    };
+
+    const reactToMessage = (messageId, emoji) => {
+        if (socketRef.current) {
+            socketRef.current.emit('react-to-message', { messageId, emoji });
         }
     };
 
@@ -1254,6 +1278,7 @@ export function useWebRTC(roomId, token, username) {
         sendMessage,
         sendAdminCommand,
         deleteMessage,
+        reactToMessage,
         setModerator,
         toggleRaiseHand,
         clearAllHands,

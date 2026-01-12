@@ -63,6 +63,29 @@ db.serialize(() => {
   `);
 });
 
+// Ensure dev user exists for development mode
+export function ensureDevUser() {
+    return new Promise((resolve, reject) => {
+        if (process.env.NODE_ENV !== 'development') {
+            resolve();
+            return;
+        }
+        
+        db.run(`
+            INSERT OR IGNORE INTO users (id, username, email, password_hash)
+            VALUES (999999, 'SweetTeams-Dev', 'dev@localhost', '')
+        `, (err) => {
+            if (err) {
+                console.error('❌ Error creating dev user:', err);
+                reject(err);
+            } else {
+                console.log('✅ Dev user ready');
+                resolve();
+            }
+        });
+    });
+}
+
 // Database functions
 export function createUser(username, email, passwordHash = null) {
     return new Promise((resolve, reject) => {

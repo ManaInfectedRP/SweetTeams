@@ -33,6 +33,7 @@ export default function Room() {
         sendAdminCommand,
             setModerator,
         deleteMessage,
+        reactToMessage,
         participants,
         participantStates,
         speakingParticipants,
@@ -241,6 +242,7 @@ export default function Room() {
                             messages={messages}
                             onSendMessage={sendMessage}
                             onDeleteMessage={deleteMessage}
+                            onReactToMessage={reactToMessage}
                             username={user?.username}
                             participants={participants}
                             canModerate={user?.id === room?.creatorId || participants.find(p => p.userId === user?.id)?.role === 'moderator'}

@@ -9,7 +9,39 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Auto-login för localhost development
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+        
+        if (isLocalhost && !token) {
+            // Skapa en dev-användare direkt utan backend
+            const devUser = {
+                id: 'dev-user',
+                username: 'SweetTeams-Dev',
+                email: 'dev@localhost'
+            };
+            const devToken = 'dev-token-' + Date.now();
+            
+            localStorage.setItem('token', devToken);
+            setToken(devToken);
+            setUser(devUser);
+            setLoading(false);
+            return;
+        }
+
         if (token) {
+            // Hoppa över verifiering för dev-tokens
+            if (token.startsWith('dev-token-')) {
+                const devUser = {
+                    id: 'dev-user',
+                    username: 'SweetTeams-Dev',
+                    email: 'dev@localhost'
+                };
+                setUser(devUser);
+                setLoading(false);
+                return;
+            }
+
             // Verify token and get user info
             fetch(`${config.apiUrl}/api/auth/me`, {
                 headers: {

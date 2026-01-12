@@ -29,6 +29,13 @@ export function setupSignaling(httpServer) {
             return next(new Error('Authentication error'));
         }
 
+        // Allow dev tokens in development mode
+        if (process.env.NODE_ENV === 'development' && token.startsWith('dev-token-')) {
+            socket.userId = 999999;
+            socket.username = 'SweetTeams-Dev';
+            return next();
+        }
+
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
                 return next(new Error('Authentication error'));
@@ -121,16 +128,31 @@ export function setupSignaling(httpServer) {
         });
 
         // Chat message
-        socket.on('chat-message', (message) => {
+        socket.on('chat-message', (data) => {
             if (socket.roomId) {
                 const payload = {
                     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                    message,
+                    message: data.text || data,
+                    type: data.type || 'text',
+                    imageData: data.imageData,
                     username: socket.username,
                     userId: socket.userId,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    reactions: []
                 };
                 io.to(socket.roomId).emit('chat-message', payload);
+            }
+        });
+
+        // React to message
+        socket.on('react-to-message', ({ messageId, emoji }) => {
+            if (socket.roomId) {
+                io.to(socket.roomId).emit('message-reaction', {
+                    messageId,
+                    emoji,
+                    username: socket.username,
+                    userId: socket.userId
+                });
             }
         });
 
