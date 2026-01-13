@@ -152,6 +152,13 @@ router.get('/verify-magic-link', async (req, res) => {
                 username: magicLink.name,
                 email: magicLink.email
             };
+        } else {
+            // Update username if it has changed
+            if (user.username !== magicLink.name) {
+                const { updateUserProfile } = await import('../database.js');
+                await updateUserProfile(user.id, { username: magicLink.name });
+                user.username = magicLink.name;
+            }
         }
 
         // Generate JWT token
