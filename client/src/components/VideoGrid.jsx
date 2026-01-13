@@ -207,6 +207,7 @@ export default function VideoGrid({
                                     autoPlay
                                     muted
                                     playsInline
+                                    data-local="true"
                                     className={isCameraOn ? '' : 'hidden'}
                                 />
                                 {!isCameraOn && (
@@ -279,6 +280,7 @@ export default function VideoGrid({
                                     autoPlay
                                     muted
                                     playsInline
+                                    data-local="true"
                                     className={isLocalVideoVisible ? '' : 'hidden'}
                                 />
                                 {!isLocalVideoVisible && (
@@ -451,6 +453,7 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
                 ref={videoRef}
                 autoPlay
                 playsInline
+                data-local="false"
                 className={isVideoEnabled ? '' : 'hidden'}
             />
 
@@ -546,6 +549,7 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
                 ref={videoRef}
                 autoPlay
                 playsInline
+                data-local="false"
                 className={isVideoEnabled ? '' : 'hidden'}
             />
 

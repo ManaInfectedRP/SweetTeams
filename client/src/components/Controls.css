@@ -71,6 +71,21 @@
     border-color: var(--color-primary-light);
 }
 
+.btn-control-recording {
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+    animation: pulse-recording 2s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
 .btn-clear-hands {
     background: linear-gradient(135deg, #f59e0b, #f97316);
     border-color: #f59e0b;

@@ -37,6 +37,13 @@ export function useWebRTC(roomId, token) {
     // Track raised hands: Map of socketId -> { order: number, timestamp: number, username: string }
     const [raisedHands, setRaisedHands] = useState(new Map());
     const [isHandRaised, setIsHandRaised] = useState(false);
+    
+    // Recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordedBlob, setRecordedBlob] = useState(null);
+    const [showRecordingPreview, setShowRecordingPreview] = useState(false);
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
 
     const socketRef = useRef(null);
     const peersRef = useRef(new Map());
@@ -1368,6 +1375,143 @@ export function useWebRTC(roomId, token) {
             socketRef.current.emit('clear-all-hands');
         }
     };
+    
+    const startRecording = () => {
+        try {
+            // Create a canvas to combine local and remote streams
+            const canvas = document.createElement('canvas');
+            canvas.width = 1920;
+            canvas.height = 1080;
+            const ctx = canvas.getContext('2d');
+            
+            // Create a destination for mixed audio
+            const audioContext = new AudioContext();
+            const dest = audioContext.createMediaStreamDestination();
+            
+            // Add local audio
+            if (localStreamRef.current) {
+                const localAudioTracks = localStreamRef.current.getAudioTracks();
+                if (localAudioTracks.length > 0) {
+                    const source = audioContext.createMediaStreamSource(
+                        new MediaStream(localAudioTracks)
+                    );
+                    source.connect(dest);
+                }
+            }
+            
+            // Add remote audio streams
+            remoteStreams.forEach((stream) => {
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    const source = audioContext.createMediaStreamSource(
+                        new MediaStream(audioTracks)
+                    );
+                    source.connect(dest);
+                }
+            });
+            
+            // Create stream from canvas
+            const canvasStream = canvas.captureStream(30);
+            
+            // Combine video from canvas and mixed audio
+            const recordStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...dest.stream.getAudioTracks()
+            ]);
+            
+            // Draw video to canvas continuously
+            const drawCanvas = () => {
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+                    return;
+                }
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw local video
+                const localVideo = document.querySelector('video[data-local="true"]');
+                if (localVideo && localVideo.videoWidth > 0) {
+                    ctx.drawImage(localVideo, 0, 0, canvas.width / 2, canvas.height / 2);
+                }
+                
+                // Draw remote videos
+                let index = 0;
+                document.querySelectorAll('video[data-local="false"]').forEach((video) => {
+                    if (video.videoWidth > 0) {
+                        const x = (index % 2) * (canvas.width / 2);
+                        const y = Math.floor(index / 2 + 0.5) * (canvas.height / 2);
+                        ctx.drawImage(video, x, y, canvas.width / 2, canvas.height / 2);
+                        index++;
+                    }
+                });
+                
+                requestAnimationFrame(drawCanvas);
+            };
+            
+            recordedChunksRef.current = [];
+            
+            const mediaRecorder = new MediaRecorder(recordStream, {
+                mimeType: 'video/webm;codecs=vp9,opus',
+                videoBitsPerSecond: 2500000
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordedChunksRef.current.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                setRecordedBlob(blob);
+                setShowRecordingPreview(true);
+            };
+            
+            mediaRecorderRef.current = mediaRecorder;
+            mediaRecorder.start(1000); // Collect data every second
+            setIsRecording(true);
+            
+            // Start drawing to canvas
+            drawCanvas();
+            
+            console.log('Recording started');
+        } catch (err) {
+            console.error('Error starting recording:', err);
+            alert('Kunde inte starta inspelning. Se konsolen för mer information.');
+        }
+    };
+    
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            console.log('Recording stopped');
+        }
+    };
+    
+    const saveRecording = () => {
+        if (recordedBlob) {
+            const url = URL.createObjectURL(recordedBlob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Close preview
+            setShowRecordingPreview(false);
+            setRecordedBlob(null);
+        }
+    };
+    
+    const discardRecording = () => {
+        setRecordedBlob(null);
+        setShowRecordingPreview(false);
+        recordedChunksRef.current = [];
+    };
 
     return {
         localStream,
@@ -1406,6 +1550,14 @@ export function useWebRTC(roomId, token) {
         clearAllHands,
         handleMicVolumeChange,
         handleNoiseReductionChange,
-        handleSpatialAudioChange
+        handleSpatialAudioChange,
+        // Recording
+        isRecording,
+        recordedBlob,
+        showRecordingPreview,
+        startRecording,
+        stopRecording,
+        saveRecording,
+        discardRecording
     };
 }

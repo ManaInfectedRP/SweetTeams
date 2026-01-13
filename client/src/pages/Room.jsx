@@ -6,6 +6,7 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import VideoGrid from '../components/VideoGrid';
 import ChatPanel from '../components/ChatPanel';
 import Controls from '../components/Controls';
+import RecordingPreview from '../components/RecordingPreview';
 import './Room.css';
 
 export default function Room() {
@@ -56,7 +57,15 @@ export default function Room() {
         spatialAudio,
         handleMicVolumeChange,
         handleNoiseReductionChange,
-        handleSpatialAudioChange
+        handleSpatialAudioChange,
+        // Recording
+        isRecording,
+        recordedBlob,
+        showRecordingPreview,
+        startRecording,
+        stopRecording,
+        saveRecording,
+        discardRecording
     } = useWebRTC(linkCode, token);
 
     useEffect(() => {
@@ -220,6 +229,9 @@ export default function Room() {
                         raisedHandsCount={raisedHands.size}
                         isHost={user?.id === room?.creatorId}
                         onClearAllHands={clearAllHands}
+                        isRecording={isRecording}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
                         devices={devices}
                         selectedCameraId={selectedCameraId}
                         selectedMicrophoneId={selectedMicrophoneId}
@@ -251,6 +263,14 @@ export default function Room() {
                     </div>
                 )}
             </div>
+            
+            {showRecordingPreview && recordedBlob && (
+                <RecordingPreview
+                    recordedBlob={recordedBlob}
+                    onSave={saveRecording}
+                    onDiscard={discardRecording}
+                />
+            )}
         </div>
     );
 }

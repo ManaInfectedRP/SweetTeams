@@ -16,6 +16,10 @@ export default function Controls({
     raisedHandsCount,
     isHost,
     onClearAllHands,
+    // Recording
+    isRecording,
+    onStartRecording,
+    onStopRecording,
     // Device selection
     devices,
     selectedCameraId,
@@ -69,6 +73,14 @@ export default function Controls({
                     title={isHandRaised ? 'Sänk hand' : 'Räck upp hand'}
                 >
                     ✋
+                </button>
+                
+                <button
+                    onClick={isRecording ? onStopRecording : onStartRecording}
+                    className={`btn-control ${isRecording ? 'btn-control-recording' : ''}`}
+                    title={isRecording ? 'Stoppa inspelning' : 'Starta inspelning'}
+                >
+                    {isRecording ? '⏹️' : '⏺️'}
                 </button>
 
                 {isMobile && onSwitchCamera && (
