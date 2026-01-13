@@ -748,14 +748,82 @@ export function useWebRTC(roomId, token) {
         }
     };
 
-    const toggleCamera = () => {
-        if (localStreamRef.current) {
-            const videoTrack = localStreamRef.current.getVideoTracks()[0];
+    const toggleCamera = async () => {
+        if (!localStreamRef.current) return;
+        
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        
+        // Check if we have a real camera track (not a dummy track)
+        const isDummyTrack = videoTrack && videoTrack.label.includes('dummy');
+        const hasRealCamera = videoTrack && !isDummyTrack;
+        
+        if (hasRealCamera) {
+            // If we have a real camera track, just toggle it
+            videoTrack.enabled = !videoTrack.enabled;
+            setIsCameraOn(videoTrack.enabled);
+            if (socketRef.current) {
+                socketRef.current.emit('media-state-change', { type: 'video', enabled: videoTrack.enabled });
+            }
+        } else if (!isCameraOn) {
+            // If camera is off and we don't have a real track, request camera access
+            try {
+                const videoConstraints = selectedCameraId 
+                    ? { deviceId: { exact: selectedCameraId }, facingMode: facingMode }
+                    : { facingMode: facingMode };
+                    
+                const newVideoStream = await navigator.mediaDevices.getUserMedia({
+                    video: videoConstraints,
+                    audio: false
+                });
+                
+                const newVideoTrack = newVideoStream.getVideoTracks()[0];
+                
+                if (newVideoTrack) {
+                    // Remove old track if exists
+                    if (videoTrack) {
+                        videoTrack.stop();
+                        localStreamRef.current.removeTrack(videoTrack);
+                    }
+                    
+                    // Add new track
+                    localStreamRef.current.addTrack(newVideoTrack);
+                    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+                    
+                    // Update state
+                    setIsCameraOn(true);
+                    
+                    // Update device ID
+                    const settings = newVideoTrack.getSettings();
+                    if (settings.deviceId) {
+                        setSelectedCameraId(settings.deviceId);
+                    }
+                    
+                    // Notify peers
+                    if (socketRef.current) {
+                        socketRef.current.emit('media-state-change', { type: 'video', enabled: true });
+                    }
+                    
+                    // Replace track in all peer connections
+                    peersRef.current.forEach(peer => {
+                        const sender = peer._pc.getSenders().find(s => s.track?.kind === 'video');
+                        if (sender) {
+                            sender.replaceTrack(newVideoTrack).catch(err => {
+                                console.error('Failed to replace video track:', err);
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error enabling camera:', err);
+                alert('Kunde inte aktivera kameran. Kontrollera att du har gett webbläsaren åtkomst till kameran.');
+            }
+        } else {
+            // Turn off camera
             if (videoTrack) {
-                videoTrack.enabled = !videoTrack.enabled;
-                setIsCameraOn(videoTrack.enabled);
+                videoTrack.enabled = false;
+                setIsCameraOn(false);
                 if (socketRef.current) {
-                    socketRef.current.emit('media-state-change', { type: 'video', enabled: videoTrack.enabled });
+                    socketRef.current.emit('media-state-change', { type: 'video', enabled: false });
                 }
             }
         }

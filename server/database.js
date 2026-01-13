@@ -85,6 +85,7 @@ async function initializePostgresTables() {
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 profile_picture TEXT,
+                is_admin INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -142,6 +143,17 @@ async function initializePostgresTables() {
                 used INTEGER DEFAULT 0
             )
         `);
+        
+        // Add is_admin column if it doesn't exist (migration)
+        try {
+            await client.query(`
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0
+            `);
+            console.log('✅ Ensured is_admin column exists');
+        } catch (err) {
+            // Column might already exist, ignore error
+            console.log('is_admin column check:', err.message);
+        }
 
         console.log('✅ PostgreSQL tables initialized');
     } catch (err) {
@@ -159,11 +171,12 @@ function initializeSqliteTables() {
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 profile_picture TEXT,
+                is_admin INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
-        // Migration: Add profile_picture column if it doesn't exist
+        // Migration: Add columns if they don't exist
         db.all("PRAGMA table_info(users)", [], (err, columns) => {
             if (err) {
                 console.error('Error checking users table:', err);
@@ -171,6 +184,7 @@ function initializeSqliteTables() {
             }
             
             const hasProfilePicture = columns.some(col => col.name === 'profile_picture');
+            const hasIsAdmin = columns.some(col => col.name === 'is_admin');
             
             if (!hasProfilePicture) {
                 db.run('ALTER TABLE users ADD COLUMN profile_picture TEXT', (err) => {
@@ -178,6 +192,16 @@ function initializeSqliteTables() {
                         console.error('Error adding profile_picture column:', err);
                     } else {
                         console.log('✅ Added profile_picture column to users table');
+                    }
+                });
+            }
+            
+            if (!hasIsAdmin) {
+                db.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0', (err) => {
+                    if (err) {
+                        console.error('Error adding is_admin column:', err);
+                    } else {
+                        console.log('✅ Added is_admin column to users table');
                     }
                 });
             }
@@ -313,9 +337,9 @@ export async function findUserByUsername(username) {
 
 export async function findUserById(id) {
     if (usePostgres) {
-        return await dbGet('SELECT id, username, email, profile_picture, created_at FROM users WHERE id = $1', [id]);
+        return await dbGet('SELECT id, username, email, profile_picture, is_admin, created_at FROM users WHERE id = $1', [id]);
     }
-    return await dbGet('SELECT id, username, email, profile_picture, created_at FROM users WHERE id = ?', [id]);
+    return await dbGet('SELECT id, username, email, profile_picture, is_admin, created_at FROM users WHERE id = ?', [id]);
 }
 
 export function createRoom(name, creatorId, linkCode) {

@@ -8,6 +8,7 @@ import { dirname } from 'path';
 import authRoutes from './routes/auth.js';
 import roomRoutes from './routes/rooms.js';
 import profileRoutes from './routes/profile.js';
+import adminRoutes from './routes/admin.js';
 import { setupSignaling } from './signaling.js';
 import { ensureDevUser } from './database.js';
 
@@ -36,6 +37,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

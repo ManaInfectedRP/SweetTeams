@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import VerifyMagicLink from './pages/VerifyMagicLink';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
+import Admin from './pages/Admin';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -64,6 +65,11 @@ function App() {
           <Route path="/room/:linkCode" element={
             <ProtectedRoute>
               <Room />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/dashboard" />} />

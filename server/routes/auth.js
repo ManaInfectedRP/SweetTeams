@@ -163,7 +163,7 @@ router.get('/verify-magic-link', async (req, res) => {
 
         // Generate JWT token
         const jwtToken = jwt.sign(
-            { id: user.id, username: user.username, email: user.email },
+            { id: user.id, username: user.username, email: user.email, isAdmin: user.is_admin || 0 },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -174,7 +174,8 @@ router.get('/verify-magic-link', async (req, res) => {
             user: { 
                 id: user.id, 
                 username: user.username, 
-                email: user.email 
+                email: user.email,
+                isAdmin: user.is_admin || 0
             }
         });
     } catch (error) {
@@ -213,6 +214,7 @@ router.get('/me', authenticateToken, async (req, res) => {
                 username: user.username,
                 email: user.email,
                 profilePicture: user.profile_picture,
+                isAdmin: user.is_admin || 0,
                 createdAt: user.created_at
             }
         });
@@ -221,5 +223,13 @@ router.get('/me', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+// Middleware to check if user is admin
+export function requireAdmin(req, res, next) {
+    if (!req.user || !req.user.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+}
 
 export default router;

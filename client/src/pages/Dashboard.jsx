@@ -107,6 +107,15 @@ export default function Dashboard() {
                                 )}
                                 <span className="user-name">{user?.username}</span>
                             </div>
+                            {user?.isAdmin === 1 && (
+                                <button 
+                                    onClick={() => navigate('/admin')} 
+                                    className="btn btn-primary btn-sm"
+                                    title="Admin Panel"
+                                >
+                                    🛠️ Admin
+                                </button>
+                            )}
                             <button 
                                 onClick={() => setShowSettings(true)} 
                                 className="btn btn-secondary btn-sm"
