@@ -10,6 +10,10 @@ const roomModerators = new Map();
 const roomScreenSharers = new Map();
 // Store raised hands per room: roomId -> Map of socketId -> { order, timestamp, username }
 const roomRaisedHands = new Map();
+// Store room deletion timers: roomId -> timeoutId
+const roomDeletionTimers = new Map();
+// Room deletion delay in milliseconds (10 minutes)
+const ROOM_DELETION_DELAY = 10 * 60 * 1000;
 
 export function setupSignaling(httpServer) {
     const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -57,6 +61,13 @@ export function setupSignaling(httpServer) {
             // Initialize room if it doesn't exist
             if (!rooms.has(roomId)) {
                 rooms.set(roomId, new Map());
+            }
+
+            // Cancel any pending room deletion if someone rejoins
+            if (roomDeletionTimers.has(roomId)) {
+                clearTimeout(roomDeletionTimers.get(roomId));
+                roomDeletionTimers.delete(roomId);
+                console.log(`Room ${roomId} deletion cancelled - user reconnected`);
             }
 
             // Get user profile picture
@@ -444,16 +455,33 @@ export function setupSignaling(httpServer) {
                     username: socket.username
                 });
 
-                // Clean up empty rooms
+                // Schedule room deletion if empty
                 if (roomParticipants.size === 0) {
-                    rooms.delete(socket.roomId);
-                    roomModerators.delete(socket.roomId);
-                    // Also delete from database
-                    deleteRoom(socket.roomId).then(() => {
-                        console.log(`Room ${socket.roomId} deleted from database (empty)`);
-                    }).catch(err => {
-                        console.error(`Error deleting room ${socket.roomId}:`, err);
-                    });
+                    console.log(`Room ${socket.roomId} is now empty. Scheduling deletion in ${ROOM_DELETION_DELAY / 60000} minutes...`);
+                    
+                    const timerId = setTimeout(() => {
+                        // Double-check the room is still empty
+                        const currentParticipants = rooms.get(socket.roomId);
+                        if (!currentParticipants || currentParticipants.size === 0) {
+                            rooms.delete(socket.roomId);
+                            roomModerators.delete(socket.roomId);
+                            roomScreenSharers.delete(socket.roomId);
+                            roomRaisedHands.delete(socket.roomId);
+                            roomDeletionTimers.delete(socket.roomId);
+                            
+                            // Delete from database
+                            deleteRoom(socket.roomId).then(() => {
+                                console.log(`Room ${socket.roomId} deleted from database after being empty for ${ROOM_DELETION_DELAY / 60000} minutes`);
+                            }).catch(err => {
+                                console.error(`Error deleting room ${socket.roomId}:`, err);
+                            });
+                        } else {
+                            console.log(`Room ${socket.roomId} has participants again, keeping alive`);
+                            roomDeletionTimers.delete(socket.roomId);
+                        }
+                    }, ROOM_DELETION_DELAY);
+                    
+                    roomDeletionTimers.set(socket.roomId, timerId);
                 }
             }
         });
