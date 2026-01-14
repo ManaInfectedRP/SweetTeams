@@ -1376,13 +1376,16 @@ export function useWebRTC(roomId, token) {
         }
     };
     
-    const startRecording = () => {
+    const startRecording = async () => {
         try {
-            // Create a canvas to combine local and remote streams
-            const canvas = document.createElement('canvas');
-            canvas.width = 1920;
-            canvas.height = 1080;
-            const ctx = canvas.getContext('2d');
+            // Ask user to share their screen/tab to record everything including chat and UI
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    displaySurface: 'browser',
+                    frameRate: 30
+                },
+                audio: false // We'll add audio separately
+            });
             
             // Create a destination for mixed audio
             const audioContext = new AudioContext();
@@ -1410,43 +1413,18 @@ export function useWebRTC(roomId, token) {
                 }
             });
             
-            // Create stream from canvas
-            const canvasStream = canvas.captureStream(30);
-            
-            // Combine video from canvas and mixed audio
+            // Combine display stream video with mixed audio
             const recordStream = new MediaStream([
-                ...canvasStream.getVideoTracks(),
+                ...displayStream.getVideoTracks(),
                 ...dest.stream.getAudioTracks()
             ]);
             
-            // Draw video to canvas continuously
-            const drawCanvas = () => {
-                if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
-                    return;
+            // Handle when user stops sharing
+            displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    stopRecording();
                 }
-                
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw local video
-                const localVideo = document.querySelector('video[data-local="true"]');
-                if (localVideo && localVideo.videoWidth > 0) {
-                    ctx.drawImage(localVideo, 0, 0, canvas.width / 2, canvas.height / 2);
-                }
-                
-                // Draw remote videos
-                let index = 0;
-                document.querySelectorAll('video[data-local="false"]').forEach((video) => {
-                    if (video.videoWidth > 0) {
-                        const x = (index % 2) * (canvas.width / 2);
-                        const y = Math.floor(index / 2 + 0.5) * (canvas.height / 2);
-                        ctx.drawImage(video, x, y, canvas.width / 2, canvas.height / 2);
-                        index++;
-                    }
-                });
-                
-                requestAnimationFrame(drawCanvas);
-            };
+            });
             
             recordedChunksRef.current = [];
             
@@ -1462,6 +1440,9 @@ export function useWebRTC(roomId, token) {
             };
             
             mediaRecorder.onstop = () => {
+                // Stop display stream
+                displayStream.getTracks().forEach(track => track.stop());
+                
                 const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
                 setRecordedBlob(blob);
                 setShowRecordingPreview(true);
@@ -1471,13 +1452,14 @@ export function useWebRTC(roomId, token) {
             mediaRecorder.start(1000); // Collect data every second
             setIsRecording(true);
             
-            // Start drawing to canvas
-            drawCanvas();
-            
-            console.log('Recording started');
+            console.log('Recording started - capturing screen with audio');
         } catch (err) {
             console.error('Error starting recording:', err);
-            alert('Kunde inte starta inspelning. Se konsolen för mer information.');
+            if (err.name === 'NotAllowedError') {
+                alert('Du måste tillåta skärmdelning för att spela in mötet.');
+            } else {
+                alert('Kunde inte starta inspelning. Se konsolen för mer information.');
+            }
         }
     };
     
