@@ -205,6 +205,20 @@ router.post('/login', async (req, res) => {
 // Get current user
 router.get('/me', authenticateToken, async (req, res) => {
     try {
+        // Check if this is a guest user
+        if (req.user.isGuest) {
+            // Return guest user info from the token
+            return res.json({ 
+                user: {
+                    id: req.user.id,
+                    username: req.user.username,
+                    isGuest: true,
+                    linkCode: req.user.linkCode
+                }
+            });
+        }
+        
+        // For regular users, fetch from database
         const user = await findUserById(req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
