@@ -72,7 +72,27 @@ export default function Room() {
 
     useEffect(() => {
         fetchRoom();
-    }, [linkCode]);
+        
+        // Verify guest is accessing the correct room
+        const isGuest = localStorage.getItem('isGuest') === 'true';
+        if (isGuest && user) {
+            // Decode JWT to get the authorized linkCode (stored in the token)
+            try {
+                const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                const authorizedLinkCode = tokenPayload.linkCode;
+                
+                // If guest is trying to access a different room, log them out
+                if (authorizedLinkCode && authorizedLinkCode !== linkCode) {
+                    console.warn('Guest attempting to access unauthorized room');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('isGuest');
+                    navigate('/');
+                }
+            } catch (err) {
+                console.error('Error validating guest token:', err);
+            }
+        }
+    }, [linkCode, token, user, navigate]);
     
     // Notification for raised hands (only for host/moderators)
     useEffect(() => {
@@ -150,7 +170,17 @@ export default function Room() {
     };
 
     const handleLeave = () => {
-        navigate('/dashboard');
+        // Check if user is a guest
+        const isGuest = localStorage.getItem('isGuest') === 'true';
+        
+        if (isGuest) {
+            // Guests should be logged out when leaving their authorized room
+            localStorage.removeItem('token');
+            localStorage.removeItem('isGuest');
+            navigate('/');
+        } else {
+            navigate('/dashboard');
+        }
     };
 
     if (loading) {

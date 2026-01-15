@@ -249,10 +249,13 @@ router.post('/guest-token', async (req, res) => {
             return res.status(400).json({ error: 'Link code is required' });
         }
 
+        const guestId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
         // Create a guest token (valid for 24 hours)
         const guestToken = jwt.sign(
             {
-                id: `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+                id: guestId,
                 username: name.trim(),
                 isGuest: true,
                 linkCode: linkCode
@@ -261,10 +264,36 @@ router.post('/guest-token', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        // Store guest session in database for admin tracking
+        const usePostgres = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+        
+        try {
+            if (usePostgres) {
+                await db.pool.query(
+                    'INSERT INTO guest_sessions (id, guest_name, link_code, expires_at) VALUES ($1, $2, $3, $4)',
+                    [guestId, name.trim(), linkCode, expiresAt]
+                );
+            } else {
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        'INSERT INTO guest_sessions (id, guest_name, link_code, expires_at) VALUES (?, ?, ?, ?)',
+                        [guestId, name.trim(), linkCode, expiresAt.toISOString()],
+                        (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        }
+                    );
+                });
+            }
+        } catch (dbError) {
+            console.error('Error storing guest session:', dbError);
+            // Continue anyway - don't fail guest join if tracking fails
+        }
+
         res.json({
             token: guestToken,
             user: {
-                id: `guest_${Date.now()}`,
+                id: guestId,
                 username: name.trim(),
                 isGuest: true
             }

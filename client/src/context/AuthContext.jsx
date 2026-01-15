@@ -164,6 +164,7 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('isGuest');
         setToken(null);
         setUser(null);
     };
@@ -179,6 +180,8 @@ export function AuthProvider({ children }) {
         <AuthContext.Provider value={{ 
             user, 
             token, 
+            login,
+            register,
             requestMagicLink, 
             verifyMagicLink, 
             logout, 

@@ -143,6 +143,17 @@ async function initializePostgresTables() {
                 used INTEGER DEFAULT 0
             )
         `);
+
+        // Guest sessions table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS guest_sessions (
+                id TEXT PRIMARY KEY,
+                guest_name TEXT NOT NULL,
+                link_code TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL
+            )
+        `);
         
         // Add is_admin column if it doesn't exist (migration)
         try {
@@ -254,6 +265,16 @@ function initializeSqliteTables() {
                 expires_at DATETIME NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 used INTEGER DEFAULT 0
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS guest_sessions (
+                id TEXT PRIMARY KEY,
+                guest_name TEXT NOT NULL,
+                link_code TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL
             )
         `);
     });

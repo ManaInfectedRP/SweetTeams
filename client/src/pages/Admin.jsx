@@ -11,6 +11,7 @@ export default function Admin() {
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
     const [rooms, setRooms] = useState([]);
+    const [guests, setGuests] = useState([]);
     const [databaseInfo, setDatabaseInfo] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [message, setMessage] = useState('');
@@ -22,10 +23,11 @@ export default function Admin() {
             setLoading(true);
             const headers = { 'Authorization': `Bearer ${token}` };
 
-            const [statsRes, usersRes, roomsRes, dbInfoRes] = await Promise.all([
+            const [statsRes, usersRes, roomsRes, guestsRes, dbInfoRes] = await Promise.all([
                 fetch(`${config.apiUrl}/api/admin/stats`, { headers }),
                 fetch(`${config.apiUrl}/api/admin/users`, { headers }),
                 fetch(`${config.apiUrl}/api/admin/rooms`, { headers }),
+                fetch(`${config.apiUrl}/api/admin/guests`, { headers }),
                 fetch(`${config.apiUrl}/api/admin/database/info`, { headers })
             ]);
 
@@ -37,6 +39,10 @@ export default function Admin() {
             if (roomsRes.ok) {
                 const data = await roomsRes.json();
                 setRooms(data.rooms);
+            }
+            if (guestsRes.ok) {
+                const data = await guestsRes.json();
+                setGuests(data.guests);
             }
             if (dbInfoRes.ok) setDatabaseInfo(await dbInfoRes.json());
         } catch (err) {
@@ -147,6 +153,50 @@ export default function Admin() {
         }
     };
 
+    const deleteGuest = async (guestId) => {
+        if (!window.confirm('Är du säker på att du vill radera denna gästsession?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${config.apiUrl}/api/admin/guests/${guestId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                setMessage('Guest session deleted successfully');
+                fetchData();
+            } else {
+                const data = await response.json();
+                setMessage(data.error || 'Failed to delete guest session');
+            }
+        } catch (err) {
+            console.error('Error deleting guest:', err);
+            setMessage('Failed to delete guest session');
+        }
+    };
+
+    const cleanupGuests = async () => {
+        try {
+            const response = await fetch(`${config.apiUrl}/api/admin/cleanup/guests`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setMessage(data.message);
+                fetchData();
+            } else {
+                setMessage('Failed to cleanup guest sessions');
+            }
+        } catch (err) {
+            console.error('Error cleaning up guests:', err);
+            setMessage('Failed to cleanup guest sessions');
+        }
+    };
+
     // Filter users based on search and admin status
     const filteredUsers = users.filter(u => {
         const matchesSearch = 
@@ -166,6 +216,12 @@ export default function Admin() {
         room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         room.link_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         room.creator_username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Filter guests based on search
+    const filteredGuests = guests.filter(guest =>
+        guest.guest_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        guest.link_code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) {
@@ -215,6 +271,12 @@ export default function Admin() {
                     🎥 Rooms
                 </button>
                 <button
+                    className={`tab-btn ${activeTab === 'guests' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('guests')}
+                >
+                    👤 Guests
+                </button>
+                <button
                     className={`tab-btn ${activeTab === 'database' ? 'active' : ''}`}
                     onClick={() => setActiveTab('database')}
                 >
@@ -238,6 +300,13 @@ export default function Admin() {
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.rooms}</div>
                                     <div className="stat-label">Totalt Rum</div>
+                                </div>
+                            </div>
+                            <div className="stat-card secondary">
+                                <div className="stat-icon">👤</div>
+                                <div className="stat-info">
+                                    <div className="stat-value">{stats.guestSessions || 0}</div>
+                                    <div className="stat-label">Aktiva Gäster</div>
                                 </div>
                             </div>
                             <div className="stat-card warning">
@@ -457,6 +526,70 @@ export default function Admin() {
                     </div>
                 )}
 
+                {activeTab === 'guests' && (
+                    <div className="guests-section">
+                        <div className="section-header">
+                            <h2>Gästsessioner</h2>
+                            <input
+                                type="text"
+                                placeholder="Sök gäster..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+                        <div className="results-count">
+                            Visar {filteredGuests.length} av {guests.length} gäster
+                            ({guests.filter(g => g.is_active).length} aktiva)
+                        </div>
+                        <div className="table-container">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Namn</th>
+                                        <th>Länkkod</th>
+                                        <th>Status</th>
+                                        <th>Skapad</th>
+                                        <th>Utgår</th>
+                                        <th>Åtgärder</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredGuests.map(guest => (
+                                        <tr key={guest.id} className={!guest.is_active ? 'expired-row' : ''}>
+                                            <td><code className="guest-id">{guest.id.substring(0, 20)}...</code></td>
+                                            <td>{guest.guest_name}</td>
+                                            <td><code className="link-code">{guest.link_code}</code></td>
+                                            <td>
+                                                <span className={`badge ${guest.is_active ? 'badge-success' : 'badge-expired'}`}>
+                                                    {guest.is_active ? '🟢 Aktiv' : '🔴 Utgången'}
+                                                </span>
+                                            </td>
+                                            <td>{new Date(guest.created_at).toLocaleString('sv-SE')}</td>
+                                            <td>{new Date(guest.expires_at).toLocaleString('sv-SE')}</td>
+                                            <td>
+                                                <button
+                                                    onClick={() => deleteGuest(guest.id)}
+                                                    className="btn btn-sm btn-danger"
+                                                >
+                                                    🗑️ Radera
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {filteredGuests.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-icon">🔍</div>
+                                    <p>Inga gästsessioner hittades</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'database' && databaseInfo && (
                     <div className="database-section">
                         <h2>Databasinformation</h2>
@@ -491,6 +624,18 @@ export default function Admin() {
                                     </div>
                                     <button
                                         onClick={cleanupMagicLinks}
+                                        className="btn btn-primary"
+                                    >
+                                        🧹 Rensa nu
+                                    </button>
+                                </div>
+                                <div className="maintenance-item">
+                                    <div className="maintenance-info">
+                                        <strong>Rensa utgångna Gästsessioner</strong>
+                                        <p>Tar bort alla utgångna gästsessioner från databasen</p>
+                                    </div>
+                                    <button
+                                        onClick={cleanupGuests}
                                         className="btn btn-primary"
                                     >
                                         🧹 Rensa nu

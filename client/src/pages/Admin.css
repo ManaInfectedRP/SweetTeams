@@ -118,6 +118,10 @@
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
+.stat-card.secondary {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
 .stat-card.warning {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
@@ -341,6 +345,16 @@
     color: white;
 }
 
+.badge-success {
+    background: #10b981;
+    color: white;
+}
+
+.badge-expired {
+    background: #ef4444;
+    color: white;
+}
+
 /* Maintenance Section Updates */
 .maintenance-actions {
     display: flex;
@@ -383,6 +397,18 @@
     border-radius: 8px;
     text-align: center;
     font-size: 1.1rem;
+}
+
+/* Guest Sessions Styles */
+.guest-id {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.expired-row {
+    opacity: 0.6;
+    background: rgba(239, 68, 68, 0.05);
 }
 
 /* Table Styles */

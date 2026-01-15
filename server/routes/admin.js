@@ -15,11 +15,12 @@ router.get('/stats', async (req, res) => {
         
         let stats;
         if (usePostgres) {
-            const [users, rooms, magicLinks, preferences] = await Promise.all([
+            const [users, rooms, magicLinks, preferences, guestSessions] = await Promise.all([
                 db.pool.query('SELECT COUNT(*) FROM users'),
                 db.pool.query('SELECT COUNT(*) FROM rooms'),
                 db.pool.query('SELECT COUNT(*) FROM magic_links'),
-                db.pool.query('SELECT COUNT(*) FROM user_preferences')
+                db.pool.query('SELECT COUNT(*) FROM user_preferences'),
+                db.pool.query("SELECT COUNT(*) FROM guest_sessions WHERE expires_at > NOW()")
             ]);
             
             stats = {
@@ -27,6 +28,7 @@ router.get('/stats', async (req, res) => {
                 rooms: parseInt(rooms.rows[0].count),
                 magicLinks: parseInt(magicLinks.rows[0].count),
                 preferences: parseInt(preferences.rows[0].count),
+                guestSessions: parseInt(guestSessions.rows[0].count),
                 databaseType: 'PostgreSQL'
             };
         } else {
@@ -39,12 +41,16 @@ router.get('/stats', async (req, res) => {
                             if (err) return reject(err);
                             db.get('SELECT COUNT(*) as count FROM user_preferences', [], (err, preferences) => {
                                 if (err) return reject(err);
-                                resolve({
-                                    users: users.count,
-                                    rooms: rooms.count,
-                                    magicLinks: magicLinks.count,
-                                    preferences: preferences.count,
-                                    databaseType: 'SQLite'
+                                db.get('SELECT COUNT(*) as count FROM guest_sessions WHERE expires_at > datetime("now")', [], (err, guestSessions) => {
+                                    if (err) return reject(err);
+                                    resolve({
+                                        users: users.count,
+                                        rooms: rooms.count,
+                                        magicLinks: magicLinks.count,
+                                        preferences: preferences.count,
+                                        guestSessions: guestSessions.count,
+                                        databaseType: 'SQLite'
+                                    });
                                 });
                             });
                         });
@@ -90,6 +96,41 @@ router.get('/users', async (req, res) => {
     } catch (error) {
         console.error('Error fetching users:', error);
         res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// Get all guest sessions
+router.get('/guests', async (req, res) => {
+    try {
+        const usePostgres = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+        
+        let guests;
+        if (usePostgres) {
+            const result = await db.pool.query(`
+                SELECT id, guest_name, link_code, created_at, expires_at,
+                       CASE WHEN expires_at > NOW() THEN true ELSE false END as is_active
+                FROM guest_sessions
+                ORDER BY created_at DESC
+            `);
+            guests = result.rows;
+        } else {
+            guests = await new Promise((resolve, reject) => {
+                db.all(`
+                    SELECT id, guest_name, link_code, created_at, expires_at,
+                           CASE WHEN expires_at > datetime('now') THEN 1 ELSE 0 END as is_active
+                    FROM guest_sessions
+                    ORDER BY created_at DESC
+                `, [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+        
+        res.json({ guests });
+    } catch (error) {
+        console.error('Error fetching guest sessions:', error);
+        res.status(500).json({ error: 'Failed to fetch guest sessions' });
     }
 });
 
@@ -227,6 +268,30 @@ router.delete('/rooms/:roomId', async (req, res) => {
     }
 });
 
+// Delete guest session (admin only)
+router.delete('/guests/:guestId', async (req, res) => {
+    try {
+        const { guestId } = req.params;
+        const usePostgres = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+        
+        if (usePostgres) {
+            await db.pool.query('DELETE FROM guest_sessions WHERE id = $1', [guestId]);
+        } else {
+            await new Promise((resolve, reject) => {
+                db.run('DELETE FROM guest_sessions WHERE id = ?', [guestId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        }
+        
+        res.json({ message: 'Guest session deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting guest session:', error);
+        res.status(500).json({ error: 'Failed to delete guest session' });
+    }
+});
+
 // Clean up expired magic links
 router.post('/cleanup/magic-links', async (req, res) => {
     try {
@@ -254,6 +319,36 @@ router.post('/cleanup/magic-links', async (req, res) => {
     } catch (error) {
         console.error('Error cleaning up magic links:', error);
         res.status(500).json({ error: 'Failed to clean up magic links' });
+    }
+});
+
+// Clean up expired guest sessions
+router.post('/cleanup/guests', async (req, res) => {
+    try {
+        const usePostgres = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+        
+        let deletedCount;
+        if (usePostgres) {
+            const result = await db.pool.query(
+                "DELETE FROM guest_sessions WHERE expires_at < NOW()"
+            );
+            deletedCount = result.rowCount;
+        } else {
+            deletedCount = await new Promise((resolve, reject) => {
+                db.run(
+                    'DELETE FROM guest_sessions WHERE expires_at < datetime("now")',
+                    function (err) {
+                        if (err) reject(err);
+                        else resolve(this.changes);
+                    }
+                );
+            });
+        }
+        
+        res.json({ message: `Cleaned up ${deletedCount} expired guest sessions` });
+    } catch (error) {
+        console.error('Error cleaning up guest sessions:', error);
+        res.status(500).json({ error: 'Failed to clean up guest sessions' });
     }
 });
 
