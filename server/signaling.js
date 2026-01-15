@@ -75,11 +75,14 @@ export function setupSignaling(httpServer) {
 
             // Get user profile picture
             let profilePicture = null;
-            try {
-                const userProfile = await findUserById(socket.userId);
-                profilePicture = userProfile?.profile_picture || null;
-            } catch (err) {
-                console.error('Error fetching user profile:', err);
+            // Skip profile lookup for guests (they don't have profiles in the database)
+            if (!socket.isGuest) {
+                try {
+                    const userProfile = await findUserById(socket.userId);
+                    profilePicture = userProfile?.profile_picture || null;
+                } catch (err) {
+                    console.error('Error fetching user profile:', err);
+                }
             }
 
             const roomParticipants = rooms.get(roomId);
