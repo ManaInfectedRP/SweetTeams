@@ -68,12 +68,12 @@ export default function GuestJoin() {
                 throw new Error(data.error || 'Kunde inte skapa gästsession');
             }
 
-            // Store guest token
+            // Store guest token and flag
             localStorage.setItem('token', data.token);
             localStorage.setItem('isGuest', 'true');
             
-            // Navigate to room
-            navigate(`/room/${linkCode}`);
+            // Use window.location for full page reload to ensure AuthContext updates
+            window.location.href = `/room/${linkCode}`;
         } catch (err) {
             setError(err.message);
             setLoading(false);
