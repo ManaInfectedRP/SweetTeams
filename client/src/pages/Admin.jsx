@@ -14,6 +14,8 @@ export default function Admin() {
     const [databaseInfo, setDatabaseInfo] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [message, setMessage] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterAdmin, setFilterAdmin] = useState('all'); // 'all', 'admin', 'user'
 
     const fetchData = useCallback(async () => {
         try {
@@ -78,7 +80,7 @@ export default function Admin() {
     };
 
     const deleteUser = async (userId) => {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        if (!window.confirm('Är du säker på att du vill radera denna användare? Detta kan inte ångras.')) {
             return;
         }
 
@@ -102,7 +104,7 @@ export default function Admin() {
     };
 
     const deleteRoom = async (roomId) => {
-        if (!confirm('Are you sure you want to delete this room?')) {
+        if (!window.confirm('Är du säker på att du vill radera detta rum?')) {
             return;
         }
 
@@ -145,6 +147,27 @@ export default function Admin() {
         }
     };
 
+    // Filter users based on search and admin status
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = 
+            u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesFilter = 
+            filterAdmin === 'all' ? true :
+            filterAdmin === 'admin' ? u.is_admin :
+            !u.is_admin;
+        
+        return matchesSearch && matchesFilter;
+    });
+
+    // Filter rooms based on search
+    const filteredRooms = rooms.filter(room =>
+        room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.link_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.creator_username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (loading) {
         return (
             <div className="admin-container">
@@ -156,9 +179,12 @@ export default function Admin() {
     return (
         <div className="admin-container">
             <header className="admin-header">
-                <h1>🛠️ Admin Panel</h1>
+                <div>
+                    <h1>🛠️ Admin Panel</h1>
+                    <p className="admin-subtitle">Hantera användare, rum och systemet</p>
+                </div>
                 <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                    ← Back to Dashboard
+                    ← Tillbaka till Dashboard
                 </button>
             </header>
 
@@ -200,98 +226,161 @@ export default function Admin() {
                 {activeTab === 'overview' && stats && (
                     <div className="overview-section">
                         <div className="stats-grid">
-                            <div className="stat-card">
+                            <div className="stat-card primary">
                                 <div className="stat-icon">👥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.users}</div>
-                                    <div className="stat-label">Total Users</div>
+                                    <div className="stat-label">Totalt Användare</div>
                                 </div>
                             </div>
-                            <div className="stat-card">
+                            <div className="stat-card success">
                                 <div className="stat-icon">🎥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.rooms}</div>
-                                    <div className="stat-label">Total Rooms</div>
+                                    <div className="stat-label">Totalt Rum</div>
                                 </div>
                             </div>
-                            <div className="stat-card">
+                            <div className="stat-card warning">
                                 <div className="stat-icon">🔗</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.magicLinks}</div>
                                     <div className="stat-label">Magic Links</div>
                                 </div>
                             </div>
-                            <div className="stat-card">
+                            <div className="stat-card info">
                                 <div className="stat-icon">⚙️</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.preferences}</div>
-                                    <div className="stat-label">User Preferences</div>
+                                    <div className="stat-label">Användarinställningar</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="database-type-banner">
-                            <strong>Database:</strong> {stats.databaseType}
+                        <div className="system-info-grid">
+                            <div className="system-card">
+                                <h3>🗄️ Databas</h3>
+                                <div className="system-info-item">
+                                    <span className="label">Typ:</span>
+                                    <span className="value">{stats.databaseType}</span>
+                                </div>
+                                <div className="system-info-item">
+                                    <span className="label">Status:</span>
+                                    <span className="value status-active">🟢 Aktiv</span>
+                                </div>
+                            </div>
+                            
+                            <div className="system-card">
+                                <h3>📊 Aktivitet</h3>
+                                <div className="system-info-item">
+                                    <span className="label">Aktiva rum:</span>
+                                    <span className="value">{stats.rooms}</span>
+                                </div>
+                                <div className="system-info-item">
+                                    <span className="label">Registrerade:</span>
+                                    <span className="value">{stats.users}</span>
+                                </div>
+                            </div>
+                            
+                            <div className="system-card">
+                                <h3>🔐 Säkerhet</h3>
+                                <div className="system-info-item">
+                                    <span className="label">Admins:</span>
+                                    <span className="value">{users.filter(u => u.is_admin).length}</span>
+                                </div>
+                                <div className="system-info-item">
+                                    <span className="label">Vanliga användare:</span>
+                                    <span className="value">{users.filter(u => !u.is_admin).length}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'users' && (
                     <div className="users-section">
-                        <h2>User Management</h2>
+                        <div className="section-header">
+                            <h2>Användarhantering</h2>
+                            <div className="search-filter-bar">
+                                <input
+                                    type="text"
+                                    placeholder="Sök användare..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="search-input"
+                                />
+                                <select 
+                                    value={filterAdmin} 
+                                    onChange={(e) => setFilterAdmin(e.target.value)}
+                                    className="filter-select"
+                                >
+                                    <option value="all">Alla användare</option>
+                                    <option value="admin">Endast admins</option>
+                                    <option value="user">Endast vanliga användare</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="results-count">
+                            Visar {filteredUsers.length} av {users.length} användare
+                        </div>
                         <div className="table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Username</th>
+                                        <th>Användare</th>
                                         <th>Email</th>
-                                        <th>Admin</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
+                                        <th>Roll</th>
+                                        <th>Skapad</th>
+                                        <th>Åtgärder</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {users.map(u => (
+                                    {filteredUsers.map(u => (
                                         <tr key={u.id}>
                                             <td>{u.id}</td>
                                             <td>
-                                                {u.profile_picture && (
-                                                    <img
-                                                        src={`${config.apiUrl}${u.profile_picture}`}
-                                                        alt=""
-                                                        className="user-avatar-small"
-                                                    />
-                                                )}
-                                                {u.username}
+                                                <div className="user-cell">
+                                                    {u.profile_picture ? (
+                                                        <img
+                                                            src={`${config.apiUrl}${u.profile_picture}`}
+                                                            alt=""
+                                                            className="user-avatar-small"
+                                                        />
+                                                    ) : (
+                                                        <div className="user-avatar-small avatar-placeholder">
+                                                            {u.username[0]?.toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    <span>{u.username}</span>
+                                                </div>
                                             </td>
                                             <td>{u.email}</td>
                                             <td>
                                                 <span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>
-                                                    {u.is_admin ? '✓ Admin' : 'User'}
+                                                    {u.is_admin ? '⭐ Admin' : '👤 Användare'}
                                                 </span>
                                             </td>
-                                            <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                                            <td>{new Date(u.created_at).toLocaleDateString('sv-SE')}</td>
                                             <td>
                                                 <div className="action-buttons">
-                                                    {u.id !== user.id && (
+                                                    {u.id !== user.id ? (
                                                         <>
                                                             <button
                                                                 onClick={() => toggleAdminStatus(u.id, u.is_admin)}
                                                                 className="btn btn-sm btn-secondary"
+                                                                title={u.is_admin ? 'Ta bort admin' : 'Gör till admin'}
                                                             >
-                                                                {u.is_admin ? 'Remove Admin' : 'Make Admin'}
+                                                                {u.is_admin ? '⭐→👤' : '👤→⭐'}
                                                             </button>
                                                             <button
                                                                 onClick={() => deleteUser(u.id)}
                                                                 className="btn btn-sm btn-danger"
                                                             >
-                                                                Delete
+                                                                🗑️
                                                             </button>
                                                         </>
-                                                    )}
-                                                    {u.id === user.id && (
-                                                        <span className="text-muted">(You)</span>
+                                                    ) : (
+                                                        <span className="text-muted">(Du)</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -299,86 +388,115 @@ export default function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            {filteredUsers.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-icon">🔍</div>
+                                    <p>Inga användare hittades</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'rooms' && (
                     <div className="rooms-section">
-                        <h2>Room Management</h2>
+                        <div className="section-header">
+                            <h2>Rumshantering</h2>
+                            <input
+                                type="text"
+                                placeholder="Sök rum..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+                        <div className="results-count">
+                            Visar {filteredRooms.length} av {rooms.length} rum
+                        </div>
                         <div className="table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Name</th>
-                                        <th>Creator</th>
-                                        <th>Link Code</th>
-                                        <th>Participants</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
+                                        <th>Namn</th>
+                                        <th>Skapare</th>
+                                        <th>Länkkod</th>
+                                        <th>Deltagare</th>
+                                        <th>Skapad</th>
+                                        <th>Åtgärder</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rooms.map(room => (
+                                    {filteredRooms.map(room => (
                                         <tr key={room.id}>
                                             <td>{room.id}</td>
-                                            <td>{room.name}</td>
+                                            <td className="room-name-cell">{room.name}</td>
                                             <td>{room.creator_username}</td>
-                                            <td><code>{room.link_code}</code></td>
-                                            <td>{room.participant_count}</td>
-                                            <td>{new Date(room.created_at).toLocaleDateString()}</td>
+                                            <td><code className="link-code">{room.link_code}</code></td>
+                                            <td><span className="badge badge-info">{room.participant_count}</span></td>
+                                            <td>{new Date(room.created_at).toLocaleDateString('sv-SE')}</td>
                                             <td>
                                                 <button
                                                     onClick={() => deleteRoom(room.id)}
                                                     className="btn btn-sm btn-danger"
                                                 >
-                                                    Delete
+                                                    🗑️ Radera
                                                 </button>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                            {filteredRooms.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-icon">🔍</div>
+                                    <p>Inga rum hittades</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'database' && databaseInfo && (
                     <div className="database-section">
-                        <h2>Database Information</h2>
+                        <h2>Databasinformation</h2>
                         <div className="info-grid">
                             <div className="info-card">
-                                <div className="info-label">Type</div>
+                                <div className="info-label">🗄️ Typ</div>
                                 <div className="info-value">{databaseInfo.type}</div>
                             </div>
                             <div className="info-card">
-                                <div className="info-label">Version</div>
+                                <div className="info-label">📊 Version</div>
                                 <div className="info-value">{databaseInfo.version}</div>
                             </div>
                             <div className="info-card">
-                                <div className="info-label">Size</div>
+                                <div className="info-label">💾 Storlek</div>
                                 <div className="info-value">{databaseInfo.size}</div>
                             </div>
                             {databaseInfo.path && (
                                 <div className="info-card full-width">
-                                    <div className="info-label">Path</div>
+                                    <div className="info-label">📁 Sökväg</div>
                                     <div className="info-value"><code>{databaseInfo.path}</code></div>
                                 </div>
                             )}
                         </div>
 
                         <div className="maintenance-section">
-                            <h3>Maintenance</h3>
-                            <button
-                                onClick={cleanupMagicLinks}
-                                className="btn btn-primary"
-                            >
-                                🧹 Clean Up Expired Magic Links
-                            </button>
-                            <p className="text-secondary">
-                                Removes all expired or used magic link tokens from the database
-                            </p>
+                            <h3>🧹 Underhåll</h3>
+                            <div className="maintenance-actions">
+                                <div className="maintenance-item">
+                                    <div className="maintenance-info">
+                                        <strong>Rensa utgångna Magic Links</strong>
+                                        <p>Tar bort alla utgångna eller använda magic link-tokens från databasen</p>
+                                    </div>
+                                    <button
+                                        onClick={cleanupMagicLinks}
+                                        className="btn btn-primary"
+                                    >
+                                        🧹 Rensa nu
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
