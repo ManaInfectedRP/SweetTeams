@@ -54,6 +54,11 @@ const upload = multer({
 // Get current user profile
 router.get('/me', authenticateToken, async (req, res) => {
     try {
+        // Guests don't have profiles
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests do not have profiles' });
+        }
+        
         const user = await findUserById(req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -93,6 +98,11 @@ router.get('/me', authenticateToken, async (req, res) => {
 // Update user profile (username)
 router.patch('/me', authenticateToken, async (req, res) => {
     try {
+        // Guests cannot update profiles
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests cannot update profiles' });
+        }
+        
         const { username } = req.body;
         const updates = {};
 
@@ -131,6 +141,11 @@ router.patch('/me', authenticateToken, async (req, res) => {
 // Upload profile picture
 router.post('/me/picture', authenticateToken, upload.single('profilePicture'), async (req, res) => {
     try {
+        // Guests cannot upload profile pictures
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests cannot upload profile pictures' });
+        }
+        
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
@@ -163,6 +178,11 @@ router.post('/me/picture', authenticateToken, upload.single('profilePicture'), a
 // Delete profile picture
 router.delete('/me/picture', authenticateToken, async (req, res) => {
     try {
+        // Guests cannot delete profile pictures
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests do not have profile pictures' });
+        }
+        
         const user = await findUserById(req.user.id);
         
         if (user.profile_picture) {
@@ -211,6 +231,11 @@ router.get('/preferences', authenticateToken, async (req, res) => {
 // Update user preferences
 router.patch('/preferences', authenticateToken, async (req, res) => {
     try {
+        // Guests cannot have saved preferences
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests cannot save preferences' });
+        }
+        
         const {
             defaultMicrophone,
             defaultCamera,

@@ -14,6 +14,11 @@ function generateLinkCode() {
 // Create new room
 router.post('/', authenticateToken, async (req, res) => {
     try {
+        // Guests cannot create rooms
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests cannot create rooms' });
+        }
+        
         const { name } = req.body;
 
         if (!name || name.trim().length === 0) {
@@ -66,8 +71,10 @@ router.get('/:linkCode', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Room not found' });
         }
 
-        // Add user as participant if not already
-        await addRoomParticipant(room.id, req.user.id);
+        // Add user as participant if not already (but skip for guests)
+        if (!req.user.isGuest) {
+            await addRoomParticipant(room.id, req.user.id);
+        }
 
         // Convert snake_case to camelCase for frontend
         const formattedRoom = {
@@ -88,6 +95,11 @@ router.get('/:linkCode', authenticateToken, async (req, res) => {
 // Get user's rooms
 router.get('/', authenticateToken, async (req, res) => {
     try {
+        // Guests don't have rooms
+        if (req.user.isGuest) {
+            return res.json({ rooms: [] });
+        }
+        
         const rooms = await findRoomsByCreator(req.user.id);
         // Convert snake_case to camelCase for frontend
         const formattedRooms = rooms.map(room => ({
@@ -131,6 +143,11 @@ router.get('/guest-check/:linkCode', async (req, res) => {
 // Send room invitations via email
 router.post('/invite', authenticateToken, async (req, res) => {
     try {
+        // Guests cannot send invitations
+        if (req.user.isGuest) {
+            return res.status(403).json({ error: 'Guests cannot send invitations' });
+        }
+        
         const { linkCode, emails, message } = req.body;
 
         if (!linkCode || !Array.isArray(emails) || emails.length === 0) {
