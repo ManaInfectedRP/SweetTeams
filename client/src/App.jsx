@@ -23,7 +23,19 @@ function ProtectedRoute({ children }) {
     );
   }
 
-  return user ? children : <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" />;
+  
+  // If user is a guest, redirect to their authorized room
+  if (user.isGuest && user.linkCode) {
+    // Allow access to the room page
+    if (window.location.pathname.includes(`/room/${user.linkCode}`)) {
+      return children;
+    }
+    // Redirect guests away from dashboard/admin to their room
+    return <Navigate to={`/room/${user.linkCode}`} replace />;
+  }
+  
+  return children;
 }
 
 function PublicRoute({ children }) {
@@ -42,7 +54,14 @@ function PublicRoute({ children }) {
     );
   }
 
-  return user ? <Navigate to="/dashboard" /> : children;
+  if (!user) return children;
+  
+  // Redirect guests to their room, regular users to dashboard
+  if (user.isGuest && user.linkCode) {
+    return <Navigate to={`/room/${user.linkCode}`} replace />;
+  }
+  
+  return <Navigate to="/dashboard" />;
 }
 
 function App() {
@@ -76,7 +95,11 @@ function App() {
               <Admin />
             </ProtectedRoute>
           } />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Navigate to="/dashboard" />
+            </ProtectedRoute>
+          } />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
