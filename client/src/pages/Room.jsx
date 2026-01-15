@@ -13,7 +13,7 @@ import './Room.css';
 export default function Room() {
     const { linkCode } = useParams();
     const navigate = useNavigate();
-    const { user, token } = useAuth();
+    const { user, token, logout } = useAuth();
     const [room, setRoom] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
@@ -175,9 +175,8 @@ export default function Room() {
         
         if (isGuest) {
             // Guests should be logged out when leaving their authorized room
-            localStorage.removeItem('token');
-            localStorage.removeItem('isGuest');
-            navigate('/');
+            logout();
+            navigate('/login', { replace: true });
         } else {
             navigate('/dashboard');
         }
