@@ -48,6 +48,7 @@ export function setupSignaling(httpServer) {
             }
             socket.userId = decoded.id;
             socket.username = decoded.username;
+            socket.isGuest = decoded.isGuest || false;
             next();
         });
     });

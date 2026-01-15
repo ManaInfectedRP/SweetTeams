@@ -232,4 +232,47 @@ export function requireAdmin(req, res, next) {
     next();
 }
 
+// Create guest token for joining room without account
+router.post('/guest-token', async (req, res) => {
+    try {
+        const { name, linkCode } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+
+        if (name.trim().length < 2) {
+            return res.status(400).json({ error: 'Name must be at least 2 characters' });
+        }
+
+        if (!linkCode) {
+            return res.status(400).json({ error: 'Link code is required' });
+        }
+
+        // Create a guest token (valid for 24 hours)
+        const guestToken = jwt.sign(
+            {
+                id: `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+                username: name.trim(),
+                isGuest: true,
+                linkCode: linkCode
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            token: guestToken,
+            user: {
+                id: `guest_${Date.now()}`,
+                username: name.trim(),
+                isGuest: true
+            }
+        });
+    } catch (error) {
+        console.error('Guest token error:', error);
+        res.status(500).json({ error: 'Server error creating guest session' });
+    }
+});
+
 export default router;

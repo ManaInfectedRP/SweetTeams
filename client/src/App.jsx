@@ -5,6 +5,7 @@ import VerifyMagicLink from './pages/VerifyMagicLink';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
 import Admin from './pages/Admin';
+import GuestJoin from './pages/GuestJoin';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -56,6 +57,9 @@ function App() {
           } />
           <Route path="/auth/verify" element={
             <VerifyMagicLink />
+          } />
+          <Route path="/guest/:linkCode" element={
+            <GuestJoin />
           } />
           <Route path="/dashboard" element={
             <ProtectedRoute>

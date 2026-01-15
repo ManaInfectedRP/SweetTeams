@@ -7,6 +7,7 @@ import VideoGrid from '../components/VideoGrid';
 import ChatPanel from '../components/ChatPanel';
 import Controls from '../components/Controls';
 import RecordingPreview from '../components/RecordingPreview';
+import InviteModal from '../components/InviteModal';
 import './Room.css';
 
 export default function Room() {
@@ -16,6 +17,7 @@ export default function Room() {
     const [room, setRoom] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
+    const [showInviteModal, setShowInviteModal] = useState(false);
     const previousHandsRef = useRef(new Set());
 
     const {
@@ -245,6 +247,7 @@ export default function Room() {
                         onMicVolumeChange={handleMicVolumeChange}
                         onNoiseReductionChange={handleNoiseReductionChange}
                         onSpatialAudioChange={handleSpatialAudioChange}
+                        onShowInvite={() => setShowInviteModal(true)}
                         onLeave={handleLeave}
                     />
                 </div>
@@ -269,6 +272,13 @@ export default function Room() {
                     recordedBlob={recordedBlob}
                     onSave={saveRecording}
                     onDiscard={discardRecording}
+                />
+            )}
+            
+            {showInviteModal && (
+                <InviteModal
+                    roomLinkCode={linkCode}
+                    onClose={() => setShowInviteModal(false)}
                 />
             )}
         </div>

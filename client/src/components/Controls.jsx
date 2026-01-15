@@ -34,7 +34,9 @@ export default function Controls({
     spatialAudio = false,
     onMicVolumeChange,
     onNoiseReductionChange,
-    onSpatialAudioChange
+    onSpatialAudioChange,
+    // Invite
+    onShowInvite
 }) {
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -81,6 +83,14 @@ export default function Controls({
                     title={isRecording ? 'Stoppa inspelning' : 'Starta inspelning'}
                 >
                     {isRecording ? '⏹️' : '⏺️'}
+                </button>
+                
+                <button
+                    onClick={onShowInvite}
+                    className="btn-control"
+                    title="Skicka inbjudan via email"
+                >
+                    📧
                 </button>
 
                 {isMobile && onSwitchCamera && (
