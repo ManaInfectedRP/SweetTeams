@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import db from '../database.js';
 import { 
     createUser, 
     findUserByEmail, 
