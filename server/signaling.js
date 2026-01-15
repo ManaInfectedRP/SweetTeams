@@ -12,6 +12,8 @@ const roomScreenSharers = new Map();
 const roomRaisedHands = new Map();
 // Store room deletion timers: roomId -> timeoutId
 const roomDeletionTimers = new Map();
+// Store media states per socket: socketId -> { audio: boolean, video: boolean }
+const socketMediaStates = new Map();
 // Room deletion delay in milliseconds (10 minutes)
 const ROOM_DELETION_DELAY = 10 * 60 * 1000;
 
@@ -54,7 +56,7 @@ export function setupSignaling(httpServer) {
         console.log(`User connected: ${socket.username} (${socket.id})`);
 
         // Join room
-        socket.on('join-room', async (roomId) => {
+        socket.on('join-room', async (roomId, initialMediaState = {}) => {
             socket.join(roomId);
             socket.roomId = roomId;
 
@@ -88,12 +90,31 @@ export function setupSignaling(httpServer) {
                 role: 'participant' // Will be updated below
             });
 
+            // Initialize media state for this socket with actual initial state or defaults
+            socketMediaStates.set(socket.id, {
+                audio: initialMediaState.audio !== undefined ? initialMediaState.audio : true,
+                video: initialMediaState.video !== undefined ? initialMediaState.video : true
+            });
+
             // Notify others in the room
             socket.to(roomId).emit('user-joined', {
                 socketId: socket.id,
                 userId: socket.userId,
                 username: socket.username,
                 profilePicture: profilePicture
+            });
+            
+            // Broadcast the new user's media state to others in the room
+            const newUserMediaState = socketMediaStates.get(socket.id);
+            socket.to(roomId).emit('user-media-state-changed', {
+                socketId: socket.id,
+                type: 'audio',
+                enabled: newUserMediaState.audio
+            });
+            socket.to(roomId).emit('user-media-state-changed', {
+                socketId: socket.id,
+                type: 'video',
+                enabled: newUserMediaState.video
             });
 
             // Send current participants to the new user
@@ -113,6 +134,27 @@ export function setupSignaling(httpServer) {
                 // Send participants with roles
                 const participants = Array.from(roomParticipants.values());
                 socket.emit('room-participants', participants);
+                
+                // Send current media states of all existing participants to the new joiner
+                roomParticipants.forEach((p, socketId) => {
+                    if (socketId !== socket.id) {
+                        const mediaState = socketMediaStates.get(socketId);
+                        if (mediaState) {
+                            // Send audio state
+                            socket.emit('user-media-state-changed', {
+                                socketId: socketId,
+                                type: 'audio',
+                                enabled: mediaState.audio
+                            });
+                            // Send video state
+                            socket.emit('user-media-state-changed', {
+                                socketId: socketId,
+                                type: 'video',
+                                enabled: mediaState.video
+                            });
+                        }
+                    }
+                });
                 
                 // Notify others about role update
                 socket.to(roomId).emit('user-role-updated', {
@@ -299,6 +341,11 @@ export function setupSignaling(httpServer) {
 
         // Handle media state changes (mute/unmute updates)
         socket.on('media-state-change', ({ type, enabled }) => {
+            // Update stored state
+            const currentState = socketMediaStates.get(socket.id) || { audio: true, video: true };
+            currentState[type] = enabled;
+            socketMediaStates.set(socket.id, currentState);
+            
             // Broadcast to room so everyone updates their icons
             io.to(socket.roomId).emit('user-media-state-changed', {
                 socketId: socket.id,
@@ -416,6 +463,9 @@ export function setupSignaling(httpServer) {
         // Handle disconnect
         socket.on('disconnect', () => {
             console.log(`User disconnected: ${socket.username} (${socket.id})`);
+
+            // Clean up media state
+            socketMediaStates.delete(socket.id);
 
             if (socket.roomId && rooms.has(socket.roomId)) {
                 const roomParticipants = rooms.get(socket.roomId);

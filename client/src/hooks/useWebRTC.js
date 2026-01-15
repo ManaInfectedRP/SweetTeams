@@ -236,16 +236,22 @@ export function useWebRTC(roomId, token) {
 
             socket.on('connect', () => {
                 console.log('Connected to signaling server');
-                socket.emit('join-room', roomId);
-                // Announce initial state
+                
+                // Get initial media state
+                let initialAudioState = false;
+                let initialVideoState = false;
                 if (localStreamRef.current) {
                     const audioTrack = localStreamRef.current.getAudioTracks()[0];
                     const videoTrack = localStreamRef.current.getVideoTracks()[0];
-                    // Careful: dummy video track is enabled=false, but effectively we want to say if *camera* is on
-                    // For now, trust the state variables
-                    socket.emit('media-state-change', { type: 'audio', enabled: audioTrack ? audioTrack.enabled : false });
-                    socket.emit('media-state-change', { type: 'video', enabled: videoTrack ? videoTrack.enabled : false });
+                    initialAudioState = audioTrack ? audioTrack.enabled : false;
+                    initialVideoState = videoTrack ? videoTrack.enabled : false;
                 }
+                
+                // Send initial state with join-room
+                socket.emit('join-room', roomId, {
+                    audio: initialAudioState,
+                    video: initialVideoState
+                });
             });
 
             socket.on('room-participants', (participantsList) => {
