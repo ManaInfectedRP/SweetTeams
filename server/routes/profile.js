@@ -206,6 +206,18 @@ router.delete('/me/picture', authenticateToken, async (req, res) => {
 // Get user preferences
 router.get('/preferences', authenticateToken, async (req, res) => {
     try {
+        // Guests don't have saved preferences - return defaults
+        if (req.user.isGuest) {
+            return res.json({
+                defaultMicrophone: null,
+                defaultCamera: null,
+                defaultSpeaker: null,
+                notificationsEnabled: true,
+                autoJoinAudio: true,
+                autoJoinVideo: true
+            });
+        }
+        
         let preferences = await getUserPreferences(req.user.id);
         
         // Create default preferences if they don't exist
