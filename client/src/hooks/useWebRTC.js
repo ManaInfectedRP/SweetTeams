@@ -1384,13 +1384,19 @@ export function useWebRTC(roomId, token) {
     
     const startRecording = async () => {
         try {
-            // Ask user to share their screen/tab to record everything including chat and UI
+            // Automatically capture the current tab for recording
             const displayStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     displaySurface: 'browser',
                     frameRate: 30
                 },
-                audio: false // We'll add audio separately
+                audio: {
+                    suppressLocalAudioPlayback: false
+                },
+                preferCurrentTab: true,
+                selfBrowserSurface: 'include',
+                surfaceSwitching: 'include',
+                systemAudio: 'include'
             });
             
             // Create a destination for mixed audio
@@ -1408,14 +1414,16 @@ export function useWebRTC(roomId, token) {
                 }
             }
             
-            // Add remote audio streams
-            remoteStreams.forEach((stream) => {
-                const audioTracks = stream.getAudioTracks();
-                if (audioTracks.length > 0) {
-                    const source = audioContext.createMediaStreamSource(
-                        new MediaStream(audioTracks)
-                    );
-                    source.connect(dest);
+            // Add remote audio streams - remoteStreams is a Map with values { stream, username }
+            remoteStreams.forEach(({ stream }) => {
+                if (stream && typeof stream.getAudioTracks === 'function') {
+                    const audioTracks = stream.getAudioTracks();
+                    if (audioTracks.length > 0) {
+                        const source = audioContext.createMediaStreamSource(
+                            new MediaStream(audioTracks)
+                        );
+                        source.connect(dest);
+                    }
                 }
             });
             
