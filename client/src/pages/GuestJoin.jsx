@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import './GuestJoin.css';
 
 export default function GuestJoin() {
+    const { t } = useLanguage();
     const { linkCode } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -20,13 +22,13 @@ export default function GuestJoin() {
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    setError(data.error || 'Rummet kunde inte hittas');
+                    setError(data.error || t('guest.roomNotFound'));
                     return;
                 }
                 
                 setRoom(data);
             } catch (err) {
-                setError('Kunde inte ansluta till servern');
+                setError(t('guest.couldNotConnect'));
             }
         };
         
@@ -37,12 +39,12 @@ export default function GuestJoin() {
         e.preventDefault();
         
         if (!name.trim()) {
-            setError('Vänligen ange ditt namn');
+            setError(t('guest.pleaseEnterName'));
             return;
         }
 
         if (name.trim().length < 2) {
-            setError('Namnet måste vara minst 2 tecken');
+            setError(t('guest.nameTooShort'));
             return;
         }
 
@@ -65,7 +67,7 @@ export default function GuestJoin() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Kunde inte skapa gästsession');
+                throw new Error(data.error || t('guest.couldNotCreateSession'));
             }
 
             // Store guest token and flag
@@ -116,7 +118,7 @@ export default function GuestJoin() {
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Ange ditt namn"
+                            placeholder={t('guest.enterYourName')}
                             maxLength={50}
                             disabled={loading}
                             autoFocus
@@ -134,12 +136,12 @@ export default function GuestJoin() {
                         className="btn-join"
                         disabled={loading || !name.trim()}
                     >
-                        {loading ? 'Ansluter...' : 'Gå med i mötet'}
+                        {loading ? t('guest.connecting') : t('guest.joinMeeting')}
                     </button>
                 </form>
 
                 <div className="guest-join-footer">
-                    <p>Genom att gå med accepterar du att delta som gäst</p>
+                    <p>{t('guest.acceptTerms')}</p>
                 </div>
             </div>
         </div>

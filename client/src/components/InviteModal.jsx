@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import './InviteModal.css';
 
 export default function InviteModal({ roomLinkCode, onClose }) {
+    const { t } = useLanguage();
     const [emails, setEmails] = useState('');
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
@@ -20,7 +22,7 @@ export default function InviteModal({ roomLinkCode, onClose }) {
             .filter(e => e.length > 0);
 
         if (emailList.length === 0) {
-            setError('Ange minst en email-adress');
+            setError(t('invite.enterAtLeastOneEmail'));
             return;
         }
 
@@ -28,7 +30,7 @@ export default function InviteModal({ roomLinkCode, onClose }) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const invalidEmails = emailList.filter(e => !emailRegex.test(e));
         if (invalidEmails.length > 0) {
-            setError(`Ogiltiga email-adresser: ${invalidEmails.join(', ')}`);
+            setError(`${t('invite.invalidEmails')}: ${invalidEmails.join(', ')}`);
             return;
         }
 
@@ -52,7 +54,7 @@ export default function InviteModal({ roomLinkCode, onClose }) {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Kunde inte skicka inbjudningar');
+                throw new Error(data.error || t('invite.couldNotSend'));
             }
 
             setSuccess(true);
@@ -74,29 +76,29 @@ export default function InviteModal({ roomLinkCode, onClose }) {
         <div className="invite-modal-overlay" onClick={onClose}>
             <div className="invite-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="invite-modal-header">
-                    <h2>📧 Skicka inbjudan via email</h2>
+                    <h2>📧 {t('invite.sendEmailInvitation')}</h2>
                     <button className="close-btn" onClick={onClose}>✕</button>
                 </div>
 
                 <div className="invite-modal-content">
                     <div className="form-group">
-                        <label>Email-adresser *</label>
+                        <label>{t('invite.emailAddresses')} *</label>
                         <textarea
                             value={emails}
                             onChange={(e) => setEmails(e.target.value)}
-                            placeholder="exempel@email.com, annat@email.com&#10;Separera med komma, semikolon eller ny rad"
+                            placeholder={t('invite.emailPlaceholder')}
                             rows={4}
                             disabled={sending || success}
                         />
-                        <small>Ange en eller flera email-adresser</small>
+                        <small>{t('invite.enterOneOrMore')}</small>
                     </div>
 
                     <div className="form-group">
-                        <label>Meddelande (valfritt)</label>
+                        <label>{t('invite.message')} ({t('invite.optional')})</label>
                         <textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Lägg till ett personligt meddelande..."
+                            placeholder={t('invite.messagePlaceholder')}
                             rows={3}
                             disabled={sending || success}
                         />
@@ -110,7 +112,7 @@ export default function InviteModal({ roomLinkCode, onClose }) {
 
                     {success && (
                         <div className="invite-success">
-                            ✅ Inbjudningar skickade!
+                            ✅ {t('invite.invitationsSent')}
                         </div>
                     )}
                 </div>
@@ -121,14 +123,14 @@ export default function InviteModal({ roomLinkCode, onClose }) {
                         onClick={onClose}
                         disabled={sending}
                     >
-                        Avbryt
+                        {t('common.cancel')}
                     </button>
                     <button 
                         className="btn-primary" 
                         onClick={handleSend}
                         disabled={sending || success}
                     >
-                        {sending ? 'Skickar...' : success ? 'Skickat!' : 'Skicka inbjudningar'}
+                        {sending ? t('invite.sending') : success ? t('invite.sent') : t('invite.sendInvitations')}
                     </button>
                 </div>
             </div>

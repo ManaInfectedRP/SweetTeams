@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import './Auth.css';
 
 export default function Login() {
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
@@ -20,7 +22,7 @@ export default function Login() {
 
         try {
             const result = await requestMagicLink(email, name);
-            setSuccess(result.message || 'Magic link skickat! Kolla din e-post.');
+            setSuccess(result.message || t('auth.magicLinkSent'));
             setEmail('');
             setName('');
         } catch (err) {
@@ -37,8 +39,8 @@ export default function Login() {
                 <div className="auth-card card-glass animate-fade-in">
                     <div className="auth-header">
                         <div className="auth-logo">🎥</div>
-                        <h1>Välkommen till SweetTeams</h1>
-                        <p className="text-secondary">Ange din e-post så skickar vi en inloggningslänk</p>
+                        <h1>{t('auth.welcomeToSweetTeams')}</h1>
+                        <p className="text-secondary">{t('auth.enterEmailForLink')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
@@ -56,13 +58,13 @@ export default function Login() {
 
                         <div className="form-group">
                             <label htmlFor="name" className="form-label">
-                                Namn
+                                {t('auth.name')}
                             </label>
                             <input
                                 id="name"
                                 type="text"
                                 className="form-input"
-                                placeholder="Ditt namn"
+                                placeholder={t('auth.namePlaceholder')}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
@@ -72,13 +74,13 @@ export default function Login() {
 
                         <div className="form-group">
                             <label htmlFor="email" className="form-label">
-                                E-post
+                                {t('auth.email')}
                             </label>
                             <input
                                 id="email"
                                 type="email"
                                 className="form-input"
-                                placeholder="din@email.com"
+                                placeholder={t('auth.emailPlaceholder')}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -91,13 +93,13 @@ export default function Login() {
                             disabled={loading}
                             style={{ width: '100%' }}
                         >
-                            {loading ? 'Skickar...' : 'Skicka inloggningslänk'}
+                            {loading ? t('auth.sending') : t('auth.sendLoginLink')}
                         </button>
                     </form>
 
                     <div className="auth-footer">
                         <p className="text-secondary" style={{ textAlign: 'center' }}>
-                            Ingen registrering behövs - din länk skapar kontot automatiskt! 
+                            {t('auth.noRegistrationNeeded')}
                         </p>
                     </div>
                 </div>

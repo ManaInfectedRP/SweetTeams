@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import './VideoGrid.css';
 
@@ -22,6 +23,7 @@ export default function VideoGrid({
     activeScreenSharer = null, // { socketId, username } or null
     mySocketId = null
 }) {
+    const { t } = useLanguage();
     const localVideoRef = useRef(null);
     const localThumbnailRef = useRef(null);
     const [activeMenu, setActiveMenu] = useState(null); // socketId of active menu
@@ -271,7 +273,7 @@ export default function VideoGrid({
                         return (
                             <div className={`video-container local-video ${isSpeaking ? 'speaking' : ''}`} key="local">
                                 {localHandRaised && (
-                                    <div className="raised-hand-badge" title="Hand uppräckt">
+                                    <div className="raised-hand-badge" title={t('room.handRaised', 'Hand raised')}>
                                         ✋ {localHandRaised.order}
                                     </div>
                                 )}
@@ -300,7 +302,7 @@ export default function VideoGrid({
                                     {username} (Du)
                                     {currentUserId === creatorId && <span title="Admin"> ⭐</span>}
                                     {currentUserIsModerator && <span title="Moderator"> 🛡️</span>}
-                                    {localHandRaised && <span title="Hand uppräckt"> ✋ #{localHandRaised.order}</span>}
+                                    {localHandRaised && <span title={t('room.handRaised', 'Hand raised')}> ✋ #{localHandRaised.order}</span>}
                                 </div>
                             </div>
                         );
@@ -400,7 +402,7 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
         <div className={`video-container ${isSpeaking ? 'speaking' : ''}`}>
             {/* Raised Hand Badge */}
             {handRaised && (
-                <div className="raised-hand-badge" title="Hand uppräckt">
+                <div className="raised-hand-badge" title={t('room.handRaised', 'Hand raised')}>
                     ✋ {handRaised.order}
                 </div>
             )}
@@ -426,27 +428,27 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
                         </button>
                     )}
 
-                    {/* Admin kan bara stänga av mikrofon, inte slå på (integritetsskydd) */}
+                    {/* Admin can only turn off microphone, not turn on (privacy protection) */}
                     {mediaState.audio && (
                         <button onClick={() => onAdminAction('mute-mic', socketId)}>
-                            Stäng av Mikrofon
+                            {t('room.turnOffMicrophone', 'Turn off Microphone')}
                         </button>
                     )}
                     {/* Only admin can toggle camera */}
                     {isHost && (
                         <button onClick={() => onAdminAction('toggle-camera', socketId)}>
-                            {mediaState.video ? 'Stäng av Kamera' : 'Slå på Kamera'}
+                            {mediaState.video ? t('room.turnOffCamera', 'Turn off Camera') : t('room.turnOnCamera', 'Turn on Camera')}
                         </button>
                     )}
-                    <button onClick={() => onAdminAction('kick', socketId)} className="danger">Sparka ut</button>
+                    <button onClick={() => onAdminAction('kick', socketId)} className="danger">{t('room.kickOut', 'Kick out')}</button>
                 </div>
             )}
 
             {/* Status Icons Overlay */}
             <div className="status-icons">
-                {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
-                {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
-                {!mediaState.video && <span className="status-icon" title="Kamera av">📷🚫</span>}
+                {isModerator && <span className="role-badge moderator" title={t('room.moderator', 'Moderator')}>🛡️</span>}
+                {!mediaState.audio && <span className="status-icon" title={t('room.micOff', 'Microphone off')}>🎤🚫</span>}
+                {!mediaState.video && <span className="status-icon" title={t('room.cameraOff', 'Camera off')}>📷🚫</span>}
             </div>
 
             <video
@@ -474,8 +476,8 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
             <div className="user-label">
                 {remote.username}
                 {isRemoteHost && <span title="Admin"> ⭐</span>}
-                {isModerator && <span title="Moderator"> 🛡️</span>}
-                {handRaised && <span title="Hand uppräckt"> ✋ #{handRaised.order}</span>}
+                {isModerator && <span title={t('room.moderator', 'Moderator')}> 🛡️</span>}
+                {handRaised && <span title={t('room.handRaised', 'Hand raised')}> ✋ #{handRaised.order}</span>}
             </div>
         </div>
     );
@@ -535,14 +537,14 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
     return (
         <div className={`video-thumbnail ${isSpeaking ? 'speaking' : ''}`}>
             {handRaised && (
-                <div className="raised-hand-badge-small" title="Hand uppräckt">
+                <div className="raised-hand-badge-small" title={t('room.handRaised', 'Hand raised')}>
                     ✋ {handRaised.order}
                 </div>
             )}
             <div className="status-icons">
-                {isModerator && <span className="role-badge moderator" title="Moderator">🛡️</span>}
-                {!mediaState.audio && <span className="status-icon" title="Mikrofon av">🎤🚫</span>}
-                {!mediaState.video && <span className="status-icon" title="Kamera av">📷🚫</span>}
+                {isModerator && <span className="role-badge moderator" title={t('room.moderator', 'Moderator')}>🛡️</span>}
+                {!mediaState.audio && <span className="status-icon" title={t('room.micOff', 'Microphone off')}>🎤🚫</span>}
+                {!mediaState.video && <span className="status-icon" title={t('room.cameraOff', 'Camera off')}>📷🚫</span>}
             </div>
 
             <video
@@ -570,8 +572,8 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
             <div className="user-label">
                 {remote.username}
                 {isRemoteHost && <span title="Admin"> ⭐</span>}
-                {isModerator && <span title="Moderator"> 🛡️</span>}
-                {handRaised && <span title="Hand uppräckt"> ✋ #{handRaised.order}</span>}
+                {isModerator && <span title={t('room.moderator', 'Moderator')}> 🛡️</span>}
+                {handRaised && <span title={t('room.handRaised', 'Hand raised')}> ✋ #{handRaised.order}</span>}
             </div>
         </div>
     );

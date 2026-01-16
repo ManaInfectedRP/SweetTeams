@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import './Admin.css';
@@ -8,6 +9,7 @@ import './Admin.css';
 export default function Admin() {
     const navigate = useNavigate();
     const { user, token } = useAuth();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
@@ -110,8 +112,8 @@ export default function Admin() {
     const deleteUser = async (userId) => {
         setConfirmModal({
             isOpen: true,
-            title: '⚠️ Radera Användare',
-            message: 'Är du säker på att du vill radera denna användare? Detta kan inte ångras.',
+            title: t('admin.deleteUserTitle', '⚠️ Delete User'),
+            message: t('admin.deleteUserMessage', 'Are you sure you want to delete this user? This cannot be undone.'),
             isDangerous: true,
             onConfirm: async () => {
                 try {
@@ -138,8 +140,8 @@ export default function Admin() {
     const deleteRoom = async (roomId) => {
         setConfirmModal({
             isOpen: true,
-            title: '⚠️ Radera Rum',
-            message: 'Är du säker på att du vill radera detta rum?',
+            title: t('admin.deleteRoomTitle', '⚠️ Delete Room'),
+            message: t('admin.deleteRoomMessage', 'Are you sure you want to delete this room?'),
             isDangerous: true,
             onConfirm: async () => {
                 try {
@@ -186,8 +188,8 @@ export default function Admin() {
     const deleteGuest = async (guestId) => {
         setConfirmModal({
             isOpen: true,
-            title: '⚠️ Radera Gästsession',
-            message: 'Är du säker på att du vill radera denna gästsession?',
+            title: t('admin.deleteGuestTitle', '⚠️ Delete Guest Session'),
+            message: t('admin.deleteGuestMessage', 'Are you sure you want to delete this guest session?'),
             isDangerous: true,
             onConfirm: async () => {
                 try {
@@ -234,10 +236,10 @@ export default function Admin() {
     const clearTable = async () => {
         setConfirmModal({
             isOpen: true,
-            title: '🚨 Rensa Hela Tabellen',
-            message: `Är du ABSOLUT säker på att du vill rensa HELA tabellen "${selectedTable}"? Detta kommer att PERMANENT radera alla poster och kan INTE ångras!`,
+            title: t('admin.clearTableTitle', '🚨 Clear Entire Table'),
+            message: t('admin.clearTableMessage', `Are you ABSOLUTELY sure you want to clear the ENTIRE "${selectedTable}" table? This will PERMANENTLY delete all records and CANNOT be undone!`),
             isDangerous: true,
-            confirmText: 'Ja, Rensa',
+            confirmText: t('admin.clearTableConfirm', 'Yes, Clear'),
             onConfirm: async () => {
                 try {
             const response = await fetch(`${config.apiUrl}/api/admin/clear-table`, {
@@ -315,13 +317,13 @@ export default function Admin() {
                             checked={autoRefresh}
                             onChange={(e) => setAutoRefresh(e.target.checked)}
                         />
-                        <span>🔄 Auto-uppdatera</span>
+                        <span>🔄 {t('admin.autoRefresh', 'Auto-refresh')}</span>
                     </label>
                     <button onClick={() => setShowClearTableModal(true)} className="btn btn-warning">
-                        🗑️ Rensa Tabell
+                        🗑️ {t('admin.clearTable')}
                     </button>
                     <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                        ← Tillbaka till Dashboard
+                        ← {t('admin.backToDashboard', 'Back to Dashboard')}
                     </button>
                 </div>
             </header>
@@ -374,28 +376,28 @@ export default function Admin() {
                                 <div className="stat-icon">👥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.users}</div>
-                                    <div className="stat-label">Totalt Användare</div>
+                                    <div className="stat-label">{t('admin.totalUsers')}</div>
                                 </div>
                             </div>
                             <div className="stat-card success">
                                 <div className="stat-icon">🎥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.rooms}</div>
-                                    <div className="stat-label">Totalt Rum</div>
+                                    <div className="stat-label">{t('admin.totalRooms')}</div>
                                 </div>
                             </div>
                             <div className="stat-card secondary">
                                 <div className="stat-icon">👤</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.guestSessions || 0}</div>
-                                    <div className="stat-label">Aktiva Gäster</div>
+                                    <div className="stat-label">{t('admin.activeGuests')}</div>
                                 </div>
                             </div>
                             <div className="stat-card warning">
                                 <div className="stat-icon">🔗</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.magicLinks}</div>
-                                    <div className="stat-label">Magic Links</div>
+                                    <div className="stat-label">{t('admin.magicLinks')}</div>
                                 </div>
                             </div>
                             <div className="stat-card info">
@@ -421,26 +423,27 @@ export default function Admin() {
                             </div>
                             
                             <div className="system-card">
-                                <h3>📊 Aktivitet</h3>
+                                <h3>📊 {t('admin.activity', 'Activity')}</h3>
                                 <div className="system-info-item">
-                                    <span className="label">Aktiva rum:</span>
+                                    <span className="label">{t('admin.activeRoomsLabel')}:</span>
                                     <span className="value">{stats.rooms}</span>
                                 </div>
                                 <div className="system-info-item">
-                                    <span className="label">Registrerade:</span>
+                                    <span className="label">{t('admin.registeredLabel')}:</span>
                                     <span className="value">{stats.users}</span>
                                 </div>
                             </div>
                             
                             <div className="system-card">
-                                <h3>🔐 Säkerhet</h3>
+                                <h3>🔐 {t('admin.security', 'Security')}</h3>
                                 <div className="system-info-item">
-                                    <span className="label">Admins:</span>
+                                    <span className="label">{t('admin.admins')}:</span>
                                     <span className="value">{users.filter(u => u.is_admin).length}</span>
                                 </div>
                                 <div className="system-info-item">
-                                    <span className="label">Vanliga användare:</span>
+                                    <span className="label">{t('admin.regularUsers')}:</span>
                                     <span className="value">{users.filter(u => !u.is_admin).length}</span>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -450,11 +453,11 @@ export default function Admin() {
                 {activeTab === 'users' && (
                     <div className="users-section">
                         <div className="section-header">
-                            <h2>Användarhantering</h2>
+                            <h2>{t('admin.userManagement')}</h2>
                             <div className="search-filter-bar">
                                 <input
                                     type="text"
-                                    placeholder="Sök användare..."
+                                    placeholder={t('admin.searchUsers')}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
@@ -464,25 +467,25 @@ export default function Admin() {
                                     onChange={(e) => setFilterAdmin(e.target.value)}
                                     className="filter-select"
                                 >
-                                    <option value="all">Alla användare</option>
-                                    <option value="admin">Endast admins</option>
-                                    <option value="user">Endast vanliga användare</option>
+                                    <option value="all">{t('admin.allUsers')}</option>
+                                    <option value="admin">{t('admin.adminsOnly')}</option>
+                                    <option value="user">{t('admin.regularUsersOnly')}</option>
                                 </select>
                             </div>
                         </div>
                         <div className="results-count">
-                            Visar {filteredUsers.length} av {users.length} användare
+                            {t('admin.showingXofY', `Showing ${filteredUsers.length} of ${users.length} users`)}
                         </div>
                         <div className="table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Användare</th>
-                                        <th>Email</th>
-                                        <th>Roll</th>
-                                        <th>Skapad</th>
-                                        <th>Åtgärder</th>
+                                        <th>{t('admin.user')}</th>
+                                        <th>{t('admin.email')}</th>
+                                        <th>{t('admin.role')}</th>
+                                        <th>{t('admin.created')}</th>
+                                        <th>{t('admin.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -508,7 +511,7 @@ export default function Admin() {
                                             <td>{u.email}</td>
                                             <td>
                                                 <span className={`badge ${u.is_admin ? 'badge-admin' : 'badge-user'}`}>
-                                                    {u.is_admin ? '⭐ Admin' : '👤 Användare'}
+                                                    {u.is_admin ? `⭐ ${t('admin.admin')}` : `👤 ${t('admin.userRole')}`}
                                                 </span>
                                             </td>
                                             <td>{new Date(u.created_at).toLocaleDateString('sv-SE')}</td>
@@ -519,7 +522,7 @@ export default function Admin() {
                                                             <button
                                                                 onClick={() => toggleAdminStatus(u.id, u.is_admin)}
                                                                 className="btn btn-sm btn-secondary"
-                                                                title={u.is_admin ? 'Ta bort admin' : 'Gör till admin'}
+                                                                title={u.is_admin ? t('admin.removeAdmin') : t('admin.makeAdmin')}
                                                             >
                                                                 {u.is_admin ? '⭐→👤' : '👤→⭐'}
                                                             </button>
@@ -531,7 +534,7 @@ export default function Admin() {
                                                             </button>
                                                         </>
                                                     ) : (
-                                                        <span className="text-muted">(Du)</span>
+                                                        <span className="text-muted">({t('admin.you')})</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -542,7 +545,7 @@ export default function Admin() {
                             {filteredUsers.length === 0 && (
                                 <div className="empty-state">
                                     <div className="empty-icon">🔍</div>
-                                    <p>Inga användare hittades</p>
+                                    <p>{t('admin.noUsersFound')}</p>
                                 </div>
                             )}
                         </div>
@@ -552,29 +555,29 @@ export default function Admin() {
                 {activeTab === 'rooms' && (
                     <div className="rooms-section">
                         <div className="section-header">
-                            <h2>Rumshantering</h2>
+                            <h2>{t('admin.roomManagement')}</h2>
                             <input
                                 type="text"
-                                placeholder="Sök rum..."
+                                placeholder={t('admin.searchRooms')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="search-input"
                             />
                         </div>
                         <div className="results-count">
-                            Visar {filteredRooms.length} av {rooms.length} rum
+                            {t('admin.showingXofYRooms', `Showing ${filteredRooms.length} of ${rooms.length} rooms`)}
                         </div>
                         <div className="table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Namn</th>
-                                        <th>Skapare</th>
-                                        <th>Länkkod</th>
-                                        <th>Deltagare</th>
-                                        <th>Skapad</th>
-                                        <th>Åtgärder</th>
+                                        <th>{t('admin.name')}</th>
+                                        <th>{t('admin.creator')}</th>
+                                        <th>{t('admin.linkCode')}</th>
+                                        <th>{t('admin.participants')}</th>
+                                        <th>{t('admin.created')}</th>
+                                        <th>{t('admin.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -591,7 +594,7 @@ export default function Admin() {
                                                     onClick={() => deleteRoom(room.id)}
                                                     className="btn btn-sm btn-danger"
                                                 >
-                                                    🗑️ Radera
+                                                    🗑️ {t('admin.delete')}
                                                 </button>
                                             </td>
                                         </tr>
@@ -601,7 +604,7 @@ export default function Admin() {
                             {filteredRooms.length === 0 && (
                                 <div className="empty-state">
                                     <div className="empty-icon">🔍</div>
-                                    <p>Inga rum hittades</p>
+                                    <p>{t('admin.noRoomsFound')}</p>
                                 </div>
                             )}
                         </div>
@@ -611,30 +614,30 @@ export default function Admin() {
                 {activeTab === 'guests' && (
                     <div className="guests-section">
                         <div className="section-header">
-                            <h2>Gästsessioner</h2>
+                            <h2>{t('admin.guestSessions')}</h2>
                             <input
                                 type="text"
-                                placeholder="Sök gäster..."
+                                placeholder={t('admin.searchGuests')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="search-input"
                             />
                         </div>
                         <div className="results-count">
-                            Visar {filteredGuests.length} av {guests.length} gäster
-                            ({guests.filter(g => g.is_active).length} aktiva)
+                            {t('admin.showingXofYGuests', `Showing ${filteredGuests.length} of ${guests.length} guests`)}
+                            ({guests.filter(g => g.is_active).length} {t('admin.active')})
                         </div>
                         <div className="table-container">
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Namn</th>
-                                        <th>Länkkod</th>
-                                        <th>Status</th>
-                                        <th>Skapad</th>
-                                        <th>Utgår</th>
-                                        <th>Åtgärder</th>
+                                        <th>{t('admin.name')}</th>
+                                        <th>{t('admin.linkCode')}</th>
+                                        <th>{t('admin.status')}</th>
+                                        <th>{t('admin.created')}</th>
+                                        <th>{t('admin.expires')}</th>
+                                        <th>{t('admin.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -645,7 +648,7 @@ export default function Admin() {
                                             <td><code className="link-code">{guest.link_code}</code></td>
                                             <td>
                                                 <span className={`badge ${guest.is_active ? 'badge-success' : 'badge-expired'}`}>
-                                                    {guest.is_active ? '🟢 Aktiv' : '🔴 Utgången'}
+                                                    {guest.is_active ? `🟢 ${t('admin.active')}` : `🔴 ${t('admin.expired')}`}
                                                 </span>
                                             </td>
                                             <td>{new Date(guest.created_at).toLocaleString('sv-SE')}</td>
@@ -655,7 +658,7 @@ export default function Admin() {
                                                     onClick={() => deleteGuest(guest.id)}
                                                     className="btn btn-sm btn-danger"
                                                 >
-                                                    🗑️ Radera
+                                                    🗑️ {t('admin.delete')}
                                                 </button>
                                             </td>
                                         </tr>
@@ -665,7 +668,7 @@ export default function Admin() {
                             {filteredGuests.length === 0 && (
                                 <div className="empty-state">
                                     <div className="empty-icon">🔍</div>
-                                    <p>Inga gästsessioner hittades</p>
+                                    <p>{t('admin.noGuestsFound')}</p>
                                 </div>
                             )}
                         </div>
@@ -674,53 +677,53 @@ export default function Admin() {
 
                 {activeTab === 'database' && databaseInfo && (
                     <div className="database-section">
-                        <h2>Databasinformation</h2>
+                        <h2>{t('admin.databaseInfo')}</h2>
                         <div className="info-grid">
                             <div className="info-card">
-                                <div className="info-label">🗄️ Typ</div>
+                                <div className="info-label">🗄️ {t('admin.type')}</div>
                                 <div className="info-value">{databaseInfo.type}</div>
                             </div>
                             <div className="info-card">
-                                <div className="info-label">📊 Version</div>
+                                <div className="info-label">📊 {t('admin.version')}</div>
                                 <div className="info-value">{databaseInfo.version}</div>
                             </div>
                             <div className="info-card">
-                                <div className="info-label">💾 Storlek</div>
+                                <div className="info-label">💾 {t('admin.size')}</div>
                                 <div className="info-value">{databaseInfo.size}</div>
                             </div>
                             {databaseInfo.path && (
                                 <div className="info-card full-width">
-                                    <div className="info-label">📁 Sökväg</div>
+                                    <div className="info-label">📁 {t('admin.path')}</div>
                                     <div className="info-value"><code>{databaseInfo.path}</code></div>
                                 </div>
                             )}
                         </div>
 
                         <div className="maintenance-section">
-                            <h3>🧹 Underhåll</h3>
+                            <h3>🧹 {t('admin.maintenance')}</h3>
                             <div className="maintenance-actions">
                                 <div className="maintenance-item">
                                     <div className="maintenance-info">
-                                        <strong>Rensa utgångna Magic Links</strong>
-                                        <p>Tar bort alla utgångna eller använda magic link-tokens från databasen</p>
+                                        <strong>{t('admin.cleanupMagicLinks')}</strong>
+                                        <p>{t('admin.cleanupMagicLinksDesc')}</p>
                                     </div>
                                     <button
                                         onClick={cleanupMagicLinks}
                                         className="btn btn-primary"
                                     >
-                                        🧹 Rensa nu
+                                        🧹 {t('admin.cleanupNow')}
                                     </button>
                                 </div>
                                 <div className="maintenance-item">
                                     <div className="maintenance-info">
-                                        <strong>Rensa utgångna Gästsessioner</strong>
-                                        <p>Tar bort alla utgångna gästsessioner från databasen</p>
+                                        <strong>{t('admin.cleanupGuestSessions')}</strong>
+                                        <p>{t('admin.cleanupGuestSessionsDesc')}</p>
                                     </div>
                                     <button
                                         onClick={cleanupGuests}
                                         className="btn btn-primary"
                                     >
-                                        🧹 Rensa nu
+                                        🧹 {t('admin.cleanupNow')}
                                     </button>
                                 </div>
                             </div>
@@ -732,26 +735,25 @@ export default function Admin() {
             {showClearTableModal && (
                 <div className="modal-overlay" onClick={() => setShowClearTableModal(false)}>
                     <div className="modal-content clear-table-modal" onClick={(e) => e.stopPropagation()}>
-                        <h2>⚠️ Rensa Tabell</h2>
+                        <h2>⚠️ {t('admin.clearTable')}</h2>
                         <p className="warning-text">
-                            Detta kommer att PERMANENT radera alla poster från den valda tabellen!
-                            Detta kan INTE ångras.
+                            {t('admin.clearTableWarning')}
                         </p>
                         
                         <div className="form-group">
-                            <label htmlFor="table-select">Välj tabell att rensa:</label>
+                            <label htmlFor="table-select">{t('admin.selectTableToClear')}</label>
                             <select
                                 id="table-select"
                                 value={selectedTable}
                                 onChange={(e) => setSelectedTable(e.target.value)}
                                 className="table-select"
                             >
-                                <option value="users">Users (Användare)</option>
-                                <option value="rooms">Rooms (Rum)</option>
-                                <option value="guest_sessions">Guest Sessions (Gästsessioner)</option>
-                                <option value="magic_links">Magic Links</option>
-                                <option value="user_preferences">User Preferences (Användarinställningar)</option>
-                                <option value="room_participants">Room Participants (Rumsdeltagare)</option>
+                                <option value="users">{t('admin.usersTable')}</option>
+                                <option value="rooms">{t('admin.roomsTable')}</option>
+                                <option value="guest_sessions">{t('admin.guestSessionsTable')}</option>
+                                <option value="magic_links">{t('admin.magicLinksTable')}</option>
+                                <option value="user_preferences">{t('admin.userPreferencesTable')}</option>
+                                <option value="room_participants">{t('admin.roomParticipantsTable')}</option>
                             </select>
                         </div>
 
@@ -760,13 +762,13 @@ export default function Admin() {
                                 onClick={() => setShowClearTableModal(false)}
                                 className="btn btn-secondary"
                             >
-                                Avbryt
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={clearTable}
                                 className="btn btn-danger"
                             >
-                                🗑️ Rensa {selectedTable}
+                                🗑️ {t('admin.clearTableButton', `Clear ${selectedTable}`)}
                             </button>
                         </div>
                     </div>

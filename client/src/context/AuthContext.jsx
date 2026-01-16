@@ -147,7 +147,7 @@ export function AuthProvider({ children }) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Kunde inte skicka magic link');
+            throw new Error(error.error || 'Could not send magic link');
         }
 
         return await response.json();

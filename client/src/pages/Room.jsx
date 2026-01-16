@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import { useWebRTC } from '../hooks/useWebRTC';
 import VideoGrid from '../components/VideoGrid';
@@ -14,6 +15,7 @@ export default function Room() {
     const { linkCode } = useParams();
     const navigate = useNavigate();
     const { user, token, logout } = useAuth();
+    const { t } = useLanguage();
     const [room, setRoom] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
@@ -119,8 +121,8 @@ export default function Room() {
                 
                 // Only show notification if this isn't the initial load
                 if (previousHandsRef.current.size <= raisedHands.size) {
-                    const notification = new Notification('Hand uppräckt', {
-                        body: `${handData.username} räckte upp handen (#${handData.order})`,
+                    const notification = new Notification(t('room.handRaised', 'Hand raised'), {
+                        body: t('room.handRaisedBy', `${handData.username} raised their hand (#${handData.order})`),
                         icon: '/manifest.webmanifest',
                         tag: `hand-${socketId}`,
                         requireInteraction: false
@@ -188,7 +190,7 @@ export default function Room() {
                 <div className="animate-pulse" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
                     🎥
                 </div>
-                <p className="text-secondary">Ansluter till möte...</p>
+                <p className="text-secondary">{t('room.loading')}</p>
             </div>
         );
     }
@@ -199,10 +201,10 @@ export default function Room() {
                 <div className="room-info">
                     <h2 className="room-title">{room?.name}</h2>
                     <span className="room-participants">
-                        👥 {remoteStreams.size + 1} deltagare
+                        👥 {remoteStreams.size + 1} {t('room.participants')}
                     </span>
                     {raisedHands.size > 0 && (
-                        <span className="raised-hands-indicator" title={`${raisedHands.size} person(er) har räckt upp handen`}>
+                        <span className="raised-hands-indicator" title={t('room.raisedHandsCount', `${raisedHands.size} person(s) raised hand`)}>
                             ✋ {raisedHands.size}
                         </span>
                     )}
@@ -210,18 +212,18 @@ export default function Room() {
                         className="btn btn-secondary btn-sm"
                         onClick={() => {
                             navigator.clipboard.writeText(window.location.href);
-                            alert('Länk kopierad till urklipp!');
+                            alert(t('room.linkCopied', 'Link copied to clipboard!'));
                         }}
                         style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
-                        🔗 Dela
+                        🔗 {t('room.share', 'Share')}
                     </button>
                 </div>
                 <button
                     onClick={() => setShowChat(!showChat)}
                     className="btn btn-secondary btn-sm"
                 >
-                    {showChat ? 'Dölj' : 'Visa'} chat
+                    {showChat ? t('room.hideChat', 'Hide') : t('room.showChat', 'Show')} {t('room.chat')}
                 </button>
             </div>
 

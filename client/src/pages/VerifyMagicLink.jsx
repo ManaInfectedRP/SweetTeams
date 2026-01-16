@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import './Auth.css';
 
 export default function VerifyMagicLink() {
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState('verifying'); // verifying, success, error
-    const [message, setMessage] = useState('Verifierar din inloggning...');
+    const [message, setMessage] = useState('');
     const { verifyMagicLink } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,14 +18,14 @@ export default function VerifyMagicLink() {
         const verify = async () => {
             if (!token) {
                 setStatus('error');
-                setMessage('Ingen verifieringstoken hittades');
+                setMessage(t('auth.noToken', 'No verification token found'));
                 return;
             }
 
             try {
                 await verifyMagicLink(token);
                 setStatus('success');
-                setMessage('Inloggning lyckades! Omdirigerar...');
+                setMessage(t('auth.loginSuccess'));
                 
                 // Redirect to dashboard after 1.5 seconds
                 setTimeout(() => {
@@ -31,12 +33,12 @@ export default function VerifyMagicLink() {
                 }, 1500);
             } catch (err) {
                 setStatus('error');
-                setMessage(err.message || 'Verifiering misslyckades');
+                setMessage(err.message || t('auth.verifyFailed', 'Verification failed'));
             }
         };
 
         verify();
-    }, [searchParams, verifyMagicLink, navigate]);
+    }, [searchParams, verifyMagicLink, navigate, t]);
 
     return (
         <div className="auth-container">
@@ -50,9 +52,9 @@ export default function VerifyMagicLink() {
                             {status === 'error' && '❌'}
                         </div>
                         <h1>
-                            {status === 'verifying' && 'Verifierar...'}
-                            {status === 'success' && 'Välkommen!'}
-                            {status === 'error' && 'Något gick fel'}
+                            {status === 'verifying' && t('auth.verifying')}
+                            {status === 'success' && t('auth.welcome', 'Welcome!')}
+                            {status === 'error' && t('auth.somethingWrong', 'Something went wrong')}
                         </h1>
                         <p className="text-secondary">{message}</p>
                     </div>
@@ -63,7 +65,7 @@ export default function VerifyMagicLink() {
                                 className="btn btn-primary"
                                 onClick={() => navigate('/login')}
                             >
-                                Begär ny länk
+                                {t('auth.requestNewLink', 'Request new link')}
                             </button>
                         </div>
                     )}

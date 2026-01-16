@@ -1,3 +1,4 @@
+import { useLanguage } from '../context/LanguageContext';
 import './ConfirmModal.css';
 
 export default function ConfirmModal({ 
@@ -6,10 +7,12 @@ export default function ConfirmModal({
     onConfirm, 
     title, 
     message, 
-    confirmText = 'Bekräfta',
-    cancelText = 'Avbryt',
+    confirmText,
+    cancelText,
     isDangerous = false 
 }) {
+    const { t } = useLanguage();
+    
     if (!isOpen) return null;
 
     const handleConfirm = () => {
@@ -31,13 +34,13 @@ export default function ConfirmModal({
                         onClick={onClose} 
                         className="btn btn-secondary"
                     >
-                        {cancelText}
+                        {cancelText || t('common.cancel')}
                     </button>
                     <button 
                         onClick={handleConfirm} 
                         className={`btn ${isDangerous ? 'btn-danger' : 'btn-primary'}`}
                     >
-                        {confirmText}
+                        {confirmText || t('confirm.confirm')}
                     </button>
                 </div>
             </div>

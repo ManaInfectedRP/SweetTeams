@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import './Auth.css';
 
 export default function Register() {
+    const { t } = useLanguage();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -18,12 +20,12 @@ export default function Register() {
         setError('');
 
         if (password !== confirmPassword) {
-            setError('Lösenorden matchar inte');
+            setError(t('auth.passwordsDoNotMatch'));
             return;
         }
 
         if (password.length < 6) {
-            setError('Lösenordet måste vara minst 6 tecken');
+            setError(t('auth.passwordTooShort'));
             return;
         }
 
@@ -46,8 +48,8 @@ export default function Register() {
                 <div className="auth-card card-glass animate-fade-in">
                     <div className="auth-header">
                         <div className="auth-logo">🎥</div>
-                        <h1>Skapa konto</h1>
-                        <p className="text-secondary">Börja använda SweetTeams idag</p>
+                        <h1>{t('auth.createAccount')}</h1>
+                        <p className="text-secondary">{t('auth.startUsing')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
@@ -59,13 +61,13 @@ export default function Register() {
 
                         <div className="form-group">
                             <label htmlFor="username" className="form-label">
-                                Användarnamn
+                                {t('auth.username')}
                             </label>
                             <input
                                 id="username"
                                 type="text"
                                 className="form-input"
-                                placeholder="dittnamn"
+                                placeholder={t('auth.usernamePlaceholder')}
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -75,13 +77,13 @@ export default function Register() {
 
                         <div className="form-group">
                             <label htmlFor="email" className="form-label">
-                                E-post
+                                {t('auth.email')}
                             </label>
                             <input
                                 id="email"
                                 type="email"
                                 className="form-input"
-                                placeholder="din@email.com"
+                                placeholder={t('auth.emailPlaceholder')}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -90,7 +92,7 @@ export default function Register() {
 
                         <div className="form-group">
                             <label htmlFor="password" className="form-label">
-                                Lösenord
+                                {t('auth.password')}
                             </label>
                             <input
                                 id="password"
@@ -105,7 +107,7 @@ export default function Register() {
 
                         <div className="form-group">
                             <label htmlFor="confirmPassword" className="form-label">
-                                Bekräfta lösenord
+                                {t('auth.confirmPassword')}
                             </label>
                             <input
                                 id="confirmPassword"
@@ -124,15 +126,15 @@ export default function Register() {
                             disabled={loading}
                             style={{ width: '100%' }}
                         >
-                            {loading ? 'Skapar konto...' : 'Skapa konto'}
+                            {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
                         </button>
                     </form>
 
                     <div className="auth-footer">
                         <p className="text-secondary">
-                            Har du redan ett konto?{' '}
+                            {t('auth.alreadyHaveAccount')}{' '}
                             <Link to="/login" className="auth-link">
-                                Logga in
+                                {t('auth.login')}
                             </Link>
                         </p>
                     </div>

@@ -168,7 +168,7 @@ export default function Dashboard() {
                             <div className="animate-pulse" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
                                 🎥
                             </div>
-                            <p className="text-secondary">Laddar rum...</p>
+                            <p className="text-secondary">{t('dashboard.loadingRooms')}</p>
                         </div>
                     ) : rooms.length === 0 ? (
                         <div className="empty-state card-glass">

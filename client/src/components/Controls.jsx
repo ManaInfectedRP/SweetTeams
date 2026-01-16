@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import './Controls.css';
 
 export default function Controls({
@@ -38,6 +39,7 @@ export default function Controls({
     // Invite
     onShowInvite
 }) {
+    const { t } = useLanguage();
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const supportsOutputSelection = typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
@@ -48,7 +50,7 @@ export default function Controls({
                 <button
                     onClick={onToggleCamera}
                     className={`btn-control ${!isCameraOn ? 'btn-control-off' : ''}`}
-                    title={isCameraOn ? 'Stäng av kamera' : 'Sätt på kamera'}
+                    title={isCameraOn ? t('room.camOff') : t('room.camOn')}
                 >
                     {isCameraOn ? '📹' : '📷'}
                 </button>
@@ -56,7 +58,7 @@ export default function Controls({
                 <button
                     onClick={onToggleMic}
                     className={`btn-control ${!isMicOn ? 'btn-control-off' : ''}`}
-                    title={isMicOn ? 'Stäng av mikrofon' : 'Sätt på mikrofon'}
+                    title={isMicOn ? t('room.micOff') : t('room.micOn')}
                 >
                     {isMicOn ? '🎤' : '🔇'}
                 </button>
@@ -64,7 +66,7 @@ export default function Controls({
                 <button
                     onClick={onToggleScreenShare}
                     className={`btn-control ${isScreenSharing ? 'btn-control-active' : ''}`}
-                    title={isScreenSharing ? 'Sluta dela skärm' : 'Dela skärm'}
+                    title={isScreenSharing ? t('room.stopScreenShare') : t('room.screenShare')}
                 >
                     🖥️
                 </button>
@@ -72,7 +74,7 @@ export default function Controls({
                 <button
                     onClick={onToggleRaiseHand}
                     className={`btn-control ${isHandRaised ? 'btn-control-active' : ''}`}
-                    title={isHandRaised ? 'Sänk hand' : 'Räck upp hand'}
+                    title={isHandRaised ? t('room.lowerHand', 'Lower hand') : t('room.raiseHand', 'Raise hand')}
                 >
                     ✋
                 </button>
@@ -80,7 +82,7 @@ export default function Controls({
                 <button
                     onClick={isRecording ? onStopRecording : onStartRecording}
                     className={`btn-control ${isRecording ? 'btn-control-recording' : ''}`}
-                    title={isRecording ? 'Stoppa inspelning' : 'Starta inspelning'}
+                    title={isRecording ? t('room.stopRecord') : t('room.record')}
                 >
                     {isRecording ? '⏹️' : '⏺️'}
                 </button>
@@ -88,7 +90,7 @@ export default function Controls({
                 <button
                     onClick={onShowInvite}
                     className="btn-control"
-                    title="Skicka inbjudan via email"
+                    title={t('room.sendInvite', 'Send email invitation')}
                 >
                     📧
                 </button>
@@ -97,7 +99,7 @@ export default function Controls({
                     <button
                         onClick={onSwitchCamera}
                         className="btn-control"
-                        title="Byt kamera"
+                        title={t('room.switchCamera', 'Switch camera')}
                     >
                         🔄
                     </button>
@@ -109,7 +111,7 @@ export default function Controls({
                     <button
                         onClick={onClearAllHands}
                         className="btn-control btn-clear-hands"
-                        title={`Rensa alla uppräckta händer (${raisedHandsCount})`}
+                        title={t('room.clearAllHands', `Clear all raised hands (${raisedHandsCount})`)}
                     >
                         ✋❌ {raisedHandsCount}
                     </button>
@@ -118,37 +120,37 @@ export default function Controls({
                 <button
                     onClick={() => setShowSettings(s => !s)}
                     className="btn-control"
-                    title="Inställningar"
+                    title={t('dashboard.settings')}
                 >
                     ⚙️
                 </button>
 
                 <button onClick={onLeave} className="btn-leave">
-                Lämna möte
+                    {t('room.leave')}
                 </button>
             </div>
 
             {showSettings && (
                 <div className="device-settings-panel">
                     <div className="device-setting">
-                        <label>Kamera</label>
+                        <label>{t('room.camera', 'Camera')}</label>
                         <select value={selectedCameraId || ''} onChange={(e) => onSelectCamera?.(e.target.value)}>
                             {(devices?.videoinput || []).map(d => (
-                                <option key={d.deviceId} value={d.deviceId}>{d.label || 'Kamera'}</option>
+                                <option key={d.deviceId} value={d.deviceId}>{d.label || t('room.camera', 'Camera')}</option>
                             ))}
                         </select>
                     </div>
                     <div className="device-setting">
-                        <label>Mikrofon</label>
+                        <label>{t('room.microphone', 'Microphone')}</label>
                         <select value={selectedMicrophoneId || ''} onChange={(e) => onSelectMicrophone?.(e.target.value)}>
                             {(devices?.audioinput || []).map(d => (
-                                <option key={d.deviceId} value={d.deviceId}>{d.label || 'Mikrofon'}</option>
+                                <option key={d.deviceId} value={d.deviceId}>{d.label || t('room.microphone', 'Microphone')}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="device-setting">
-                        <label>Mikrofonvolym: {micVolume}%</label>
+                        <label>{t('room.micVolume', 'Microphone volume')}: {micVolume}%</label>
                         <input 
                             type="range" 
                             min="0" 
@@ -166,7 +168,7 @@ export default function Controls({
                                 checked={noiseReduction} 
                                 onChange={(e) => onNoiseReductionChange?.(e.target.checked)}
                             />
-                            <span style={{ marginLeft: '8px' }}>Brusreducering</span>
+                            <span style={{ marginLeft: '8px' }}>{t('room.noiseReduction', 'Noise reduction')}</span>
                         </label>
                     </div>
 
@@ -177,20 +179,20 @@ export default function Controls({
                                 checked={spatialAudio} 
                                 onChange={(e) => onSpatialAudioChange?.(e.target.checked)}
                             />
-                            <span style={{ marginLeft: '8px' }}>Spatialljud</span>
+                            <span style={{ marginLeft: '8px' }}>{t('room.spatialAudio', 'Spatial audio')}</span>
                         </label>
                     </div>
 
                     <div className="device-setting">
-                        <label>Högtalare</label>
+                        <label>{t('room.speaker', 'Speaker')}</label>
                         {supportsOutputSelection ? (
                             <select value={selectedSpeakerId || ''} onChange={(e) => onSelectSpeaker?.(e.target.value)}>
                                 {(devices?.audiooutput || []).map(d => (
-                                    <option key={d.deviceId} value={d.deviceId}>{d.label || 'Högtalare'}</option>
+                                    <option key={d.deviceId} value={d.deviceId}>{d.label || t('room.speaker', 'Speaker')}</option>
                                 ))}
                             </select>
                         ) : (
-                            <div className="text-secondary" style={{ fontSize: '0.9rem' }}>Din webbläsare stöder inte val av uppspelningsenhet.</div>
+                            <div className="text-secondary" style={{ fontSize: '0.9rem' }}>{t('room.noSpeakerSelection', 'Your browser does not support speaker selection.')}</div>
                         )}
                     </div>
                 </div>

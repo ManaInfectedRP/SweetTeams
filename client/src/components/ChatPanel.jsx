@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import './ChatPanel.css';
 
 export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, onReactToMessage, username, participants = [], canModerate = false }) {
+    const { t } = useLanguage();
     const [message, setMessage] = useState('');
     const [showParticipants, setShowParticipants] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -57,13 +59,13 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
 
         // Check file size (limit to 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('Bilden är för stor. Max 5MB.');
+            alert(t('room.imageTooLarge'));
             return;
         }
 
         // Check file type
         if (!file.type.startsWith('image/')) {
-            alert('Endast bilder är tillåtna.');
+            alert(t('room.onlyImagesAllowed'));
             return;
         }
 
@@ -113,14 +115,14 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
 
                 // Check file size (limit to 5MB)
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('Bilden är för stor. Max 5MB.');
+                    alert(t('room.imageTooLarge'));
                     continue;
                 }
 
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     onSendMessage({ 
-                        text: file.name || 'Inklistrad bild', 
+                        text: file.name || t('room.pastedImage', 'Pasted image'), 
                         type: 'image', 
                         imageData: event.target.result 
                     });
@@ -138,14 +140,14 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                 <div
                     className="chat-participants-toggle"
                     onClick={() => setShowParticipants(!showParticipants)}
-                    title="Visa deltagare"
+                    title={t('room.showParticipants')}
                     ref={participantsRef}
                 >
                     <span className="chat-count">👥 {participants.length || 1}</span>
 
                     {showParticipants && (
                         <div className="participants-dropdown">
-                            <h4>Deltagare ({participants.length})</h4>
+                            <h4>{t('room.participants')} ({participants.length})</h4>
                             <ul>
                                 {participants.map((p) => (
                                     <li key={p.socketId} className={p.username === username ? 'is-me' : ''}>
@@ -170,7 +172,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
             <div className="chat-messages">
                 {messages.length === 0 ? (
                     <div className="chat-empty">
-                        <p className="text-muted text-sm">Inga meddelanden ännu</p>
+                        <p className="text-muted text-sm">{t('room.noMessagesYet')}</p>
                     </div>
                 ) : (
                     messages.map((msg, index) => {
@@ -196,7 +198,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                                     {canModerate && !msg.deleted && (
                                         <button
                                             className="chat-message-delete"
-                                            title="Ta bort meddelande"
+                                            title={t('room.deleteMessage')}
                                             onClick={() => onDeleteMessage?.(msg.id)}
                                         >
                                             🗑️
@@ -205,7 +207,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                                 </div>
                                 <div className={`chat-message-content ${msg.deleted ? 'deleted' : ''}`}>
                                     {msg.deleted ? (
-                                        'Meddelandet borttaget av moderator'
+                                        t('room.messageDeletedByModerator')
                                     ) : msg.type === 'image' ? (
                                         <div className="chat-image-container">
                                             <img 
@@ -273,7 +275,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                     type="button"
                     className="chat-image-btn"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Skicka bild"
+                    title={t('room.sendImage')}
                 >
                     📷
                 </button>
@@ -282,7 +284,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                         type="button"
                         className="chat-emoji-btn"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        title="Lägg till emoji"
+                        title={t('room.addEmoji', 'Add emoji')}
                     >
                         😊
                     </button>
@@ -304,7 +306,7 @@ export default function ChatPanel({ messages, onSendMessage, onDeleteMessage, on
                 <input
                     type="text"
                     className="chat-input"
-                    placeholder="Skriv ett meddelande..."
+                    placeholder={t('room.writeMessage')}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onPaste={handlePaste}
