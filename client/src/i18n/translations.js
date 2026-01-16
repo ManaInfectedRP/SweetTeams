@@ -271,6 +271,7 @@ export const translations = {
         uploadPicture: "Upload Picture",
         deletePicture: "Delete Picture",
         preferences: "Preferences",
+        emailCannotBeChanged: "Email cannot be changed",
 
     },
     
@@ -468,6 +469,7 @@ export const translations = {
         somethingWrong: "Något gick fel",
         welcome: "Välkommen!",
         sendLoginLink: "Skicka inloggningslänk",
+
     },
     
     // Dashboard
@@ -700,6 +702,7 @@ export const translations = {
         uploadPicture: "Ladda upp bild",
         deletePicture: "Ta bort bild",
         preferences: "Preferenser",
+        emailCannotBeChanged: "E-post kan inte ändras",
     },
     
     // Confirm Modal
