@@ -298,7 +298,7 @@ export default function ProfileSettings({ onClose }) {
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={loading}
                                     >
-                                        Upload Picture
+                                        {t('profile.uploadPicture')}
                                     </button>
                                     {profilePicture && (
                                         <button
@@ -306,7 +306,7 @@ export default function ProfileSettings({ onClose }) {
                                             onClick={handleDeleteProfilePicture}
                                             disabled={loading}
                                         >
-                                            Delete
+                                            {t('profile.deletePicture')}
                                         </button>
                                     )}
                                 </div>
@@ -314,7 +314,7 @@ export default function ProfileSettings({ onClose }) {
 
                             <form onSubmit={handleProfileUpdate}>
                                 <div className="form-group">
-                                    <label htmlFor="username">Username</label>
+                                    <label htmlFor="username">{t('profile.username')}</label>
                                     <input
                                         type="text"
                                         id="username"
@@ -327,7 +327,7 @@ export default function ProfileSettings({ onClose }) {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="email">Email</label>
+                                    <label htmlFor="email">{t('profile.email')}</label>
                                     <input
                                         type="email"
                                         id="email"
@@ -335,7 +335,7 @@ export default function ProfileSettings({ onClose }) {
                                         disabled
                                         className="disabled-input"
                                     />
-                                    <small>Email cannot be changed</small>
+                                    <small>{t('profile.emailCannotBeChanged')}</small>
                                 </div>
 
                                 <button
@@ -343,7 +343,7 @@ export default function ProfileSettings({ onClose }) {
                                     className="btn btn-primary"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Saving...' : 'Save Changes'}
+                                    {loading ? t('profile.saving') : t('profile.saveChanges')}
                                 </button>
                             </form>
                         </div>
@@ -353,7 +353,7 @@ export default function ProfileSettings({ onClose }) {
                         <div className="settings-section">
                             <form onSubmit={handlePreferencesUpdate}>
                                 <div className="form-group">
-                                    <label htmlFor="defaultMicrophone">Default Microphone</label>
+                                    <label htmlFor="defaultMicrophone">{t('profile.defaultMicrophone')}</label>
                                     <select
                                         id="defaultMicrophone"
                                         value={preferences.defaultMicrophone || ''}
@@ -372,7 +372,7 @@ export default function ProfileSettings({ onClose }) {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="defaultCamera">Default Camera</label>
+                                    <label htmlFor="defaultCamera">{t('profile.defaultCamera')}</label>
                                     <select
                                         id="defaultCamera"
                                         value={preferences.defaultCamera || ''}
@@ -391,7 +391,7 @@ export default function ProfileSettings({ onClose }) {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="defaultSpeaker">Default Speaker</label>
+                                    <label htmlFor="defaultSpeaker">{t('profile.defaultSpeaker')}</label>
                                     <select
                                         id="defaultSpeaker"
                                         value={preferences.defaultSpeaker || ''}
@@ -414,7 +414,7 @@ export default function ProfileSettings({ onClose }) {
                                     className="btn btn-primary"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Saving...' : 'Save Device Settings'}
+                                    {loading ? t('profile.saving') : t('profile.saveDeviceSettings')}
                                 </button>
                             </form>
                         </div>
