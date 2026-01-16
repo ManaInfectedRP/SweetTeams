@@ -1384,20 +1384,11 @@ export function useWebRTC(roomId, token) {
     
     const startRecording = async () => {
         try {
-            // Automatically capture the current tab for recording
-            const displayStream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    displaySurface: 'browser',
-                    frameRate: 30
-                },
-                audio: {
-                    suppressLocalAudioPlayback: false
-                },
-                preferCurrentTab: true,
-                selfBrowserSurface: 'include',
-                surfaceSwitching: 'include',
-                systemAudio: 'include'
-            });
+            // Create a canvas to render the meeting
+            const canvas = document.createElement('canvas');
+            canvas.width = 1920;
+            canvas.height = 1080;
+            const ctx = canvas.getContext('2d');
             
             // Create a destination for mixed audio
             const audioContext = new AudioContext();
@@ -1427,18 +1418,109 @@ export function useWebRTC(roomId, token) {
                 }
             });
             
-            // Combine display stream video with mixed audio
+            // Get all video elements from the page
+            const getVideoElements = () => {
+                const videos = [];
+                
+                // Find all video elements in the video grid
+                const videoElements = document.querySelectorAll('.video-grid video, .video-tile video');
+                videoElements.forEach(video => {
+                    if (video.srcObject && video.readyState >= 2) { // HAVE_CURRENT_DATA
+                        videos.push(video);
+                    }
+                });
+                
+                return videos;
+            };
+            
+            // Render frame to canvas
+            const renderFrame = () => {
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+                    return;
+                }
+                
+                // Clear canvas
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const videos = getVideoElements();
+                const videoCount = videos.length;
+                
+                if (videoCount === 0) {
+                    // No videos, just show a message
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '48px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Väntar på videoströmmar...', canvas.width / 2, canvas.height / 2);
+                } else {
+                    // Calculate grid layout
+                    let cols, rows;
+                    if (videoCount === 1) {
+                        cols = 1; rows = 1;
+                    } else if (videoCount === 2) {
+                        cols = 2; rows = 1;
+                    } else if (videoCount <= 4) {
+                        cols = 2; rows = 2;
+                    } else if (videoCount <= 6) {
+                        cols = 3; rows = 2;
+                    } else if (videoCount <= 9) {
+                        cols = 3; rows = 3;
+                    } else {
+                        cols = 4; rows = Math.ceil(videoCount / 4);
+                    }
+                    
+                    const cellWidth = canvas.width / cols;
+                    const cellHeight = canvas.height / rows;
+                    const padding = 10;
+                    
+                    // Draw each video
+                    videos.forEach((video, index) => {
+                        const col = index % cols;
+                        const row = Math.floor(index / cols);
+                        
+                        const x = col * cellWidth + padding;
+                        const y = row * cellHeight + padding;
+                        const w = cellWidth - padding * 2;
+                        const h = cellHeight - padding * 2;
+                        
+                        try {
+                            // Calculate aspect ratio to fit video
+                            const videoAspect = video.videoWidth / video.videoHeight;
+                            const cellAspect = w / h;
+                            
+                            let drawW = w;
+                            let drawH = h;
+                            let drawX = x;
+                            let drawY = y;
+                            
+                            if (videoAspect > cellAspect) {
+                                drawH = w / videoAspect;
+                                drawY = y + (h - drawH) / 2;
+                            } else {
+                                drawW = h * videoAspect;
+                                drawX = x + (w - drawW) / 2;
+                            }
+                            
+                            ctx.drawImage(video, drawX, drawY, drawW, drawH);
+                        } catch (err) {
+                            // Video not ready, skip
+                            console.warn('Could not draw video:', err);
+                        }
+                    });
+                }
+                
+                requestAnimationFrame(renderFrame);
+            };
+            
+            // Start rendering
+            renderFrame();
+            
+            // Capture canvas stream and combine with audio
+            const canvasStream = canvas.captureStream(30); // 30 FPS
             const recordStream = new MediaStream([
-                ...displayStream.getVideoTracks(),
+                ...canvasStream.getVideoTracks(),
                 ...dest.stream.getAudioTracks()
             ]);
-            
-            // Handle when user stops sharing
-            displayStream.getVideoTracks()[0].addEventListener('ended', () => {
-                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                    stopRecording();
-                }
-            });
             
             recordedChunksRef.current = [];
             
@@ -1454,9 +1536,6 @@ export function useWebRTC(roomId, token) {
             };
             
             mediaRecorder.onstop = () => {
-                // Stop display stream
-                displayStream.getTracks().forEach(track => track.stop());
-                
                 const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
                 setRecordedBlob(blob);
                 setShowRecordingPreview(true);
@@ -1466,14 +1545,10 @@ export function useWebRTC(roomId, token) {
             mediaRecorder.start(1000); // Collect data every second
             setIsRecording(true);
             
-            console.log('Recording started - capturing screen with audio');
+            console.log('Recording started - capturing meeting with audio from all participants');
         } catch (err) {
             console.error('Error starting recording:', err);
-            if (err.name === 'NotAllowedError') {
-                alert('Du måste tillåta skärmdelning för att spela in mötet.');
-            } else {
-                alert('Kunde inte starta inspelning. Se konsolen för mer information.');
-            }
+            alert('Kunde inte starta inspelning. Se konsolen för mer information.');
         }
     };
     
