@@ -394,4 +394,48 @@ router.get('/database/info', async (req, res) => {
     }
 });
 
+// Clear entire table (admin only - DANGEROUS)
+router.post('/clear-table', async (req, res) => {
+    try {
+        const { tableName } = req.body;
+        
+        // Whitelist of allowed tables to prevent SQL injection
+        const allowedTables = [
+            'users',
+            'rooms',
+            'guest_sessions',
+            'magic_links',
+            'user_preferences',
+            'room_participants'
+        ];
+        
+        if (!allowedTables.includes(tableName)) {
+            return res.status(400).json({ error: 'Invalid table name' });
+        }
+        
+        const usePostgres = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+        
+        let deletedCount = 0;
+        if (usePostgres) {
+            const result = await db.pool.query(`DELETE FROM ${tableName}`);
+            deletedCount = result.rowCount;
+        } else {
+            deletedCount = await new Promise((resolve, reject) => {
+                db.run(`DELETE FROM ${tableName}`, function (err) {
+                    if (err) reject(err);
+                    else resolve(this.changes);
+                });
+            });
+        }
+        
+        console.log(`Admin ${req.user.id} cleared table ${tableName} (${deletedCount} rows deleted)`);
+        res.json({ 
+            message: `Successfully cleared table ${tableName}. Deleted ${deletedCount} rows.` 
+        });
+    } catch (error) {
+        console.error('Error clearing table:', error);
+        res.status(500).json({ error: 'Failed to clear table' });
+    }
+});
+
 export default router;

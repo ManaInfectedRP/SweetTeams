@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { config } from '../config';
+import ConfirmModal from '../components/ConfirmModal';
 import './Admin.css';
 
 export default function Admin() {
@@ -17,6 +18,16 @@ export default function Admin() {
     const [message, setMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAdmin, setFilterAdmin] = useState('all'); // 'all', 'admin', 'user'
+    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [showClearTableModal, setShowClearTableModal] = useState(false);
+    const [selectedTable, setSelectedTable] = useState('users');
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        isDangerous: false
+    });
 
     const fetchData = useCallback(async () => {
         try {
@@ -61,6 +72,17 @@ export default function Admin() {
         fetchData();
     }, [user, navigate, fetchData]);
 
+    // Auto-refresh effect
+    useEffect(() => {
+        if (!autoRefresh) return;
+        
+        const interval = setInterval(() => {
+            fetchData();
+        }, 5000); // Refresh every 5 seconds
+        
+        return () => clearInterval(interval);
+    }, [autoRefresh, fetchData]);
+
     const toggleAdminStatus = async (userId, currentStatus) => {
         try {
             const response = await fetch(`${config.apiUrl}/api/admin/users/${userId}/admin`, {
@@ -86,11 +108,13 @@ export default function Admin() {
     };
 
     const deleteUser = async (userId) => {
-        if (!window.confirm('Är du säker på att du vill radera denna användare? Detta kan inte ångras.')) {
-            return;
-        }
-
-        try {
+        setConfirmModal({
+            isOpen: true,
+            title: '⚠️ Radera Användare',
+            message: 'Är du säker på att du vill radera denna användare? Detta kan inte ångras.',
+            isDangerous: true,
+            onConfirm: async () => {
+                try {
             const response = await fetch(`${config.apiUrl}/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -103,18 +127,22 @@ export default function Admin() {
                 const data = await response.json();
                 setMessage(data.error || 'Failed to delete user');
             }
-        } catch (err) {
-            console.error('Error deleting user:', err);
-            setMessage('Failed to delete user');
-        }
+                } catch (err) {
+                    console.error('Error deleting user:', err);
+                    setMessage('Failed to delete user');
+                }
+            }
+        });
     };
 
     const deleteRoom = async (roomId) => {
-        if (!window.confirm('Är du säker på att du vill radera detta rum?')) {
-            return;
-        }
-
-        try {
+        setConfirmModal({
+            isOpen: true,
+            title: '⚠️ Radera Rum',
+            message: 'Är du säker på att du vill radera detta rum?',
+            isDangerous: true,
+            onConfirm: async () => {
+                try {
             const response = await fetch(`${config.apiUrl}/api/admin/rooms/${roomId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -127,10 +155,12 @@ export default function Admin() {
                 const data = await response.json();
                 setMessage(data.error || 'Failed to delete room');
             }
-        } catch (err) {
-            console.error('Error deleting room:', err);
-            setMessage('Failed to delete room');
-        }
+                } catch (err) {
+                    console.error('Error deleting room:', err);
+                    setMessage('Failed to delete room');
+                }
+            }
+        });
     };
 
     const cleanupMagicLinks = async () => {
@@ -154,11 +184,13 @@ export default function Admin() {
     };
 
     const deleteGuest = async (guestId) => {
-        if (!window.confirm('Är du säker på att du vill radera denna gästsession?')) {
-            return;
-        }
-
-        try {
+        setConfirmModal({
+            isOpen: true,
+            title: '⚠️ Radera Gästsession',
+            message: 'Är du säker på att du vill radera denna gästsession?',
+            isDangerous: true,
+            onConfirm: async () => {
+                try {
             const response = await fetch(`${config.apiUrl}/api/admin/guests/${guestId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -171,10 +203,12 @@ export default function Admin() {
                 const data = await response.json();
                 setMessage(data.error || 'Failed to delete guest session');
             }
-        } catch (err) {
-            console.error('Error deleting guest:', err);
-            setMessage('Failed to delete guest session');
-        }
+                } catch (err) {
+                    console.error('Error deleting guest:', err);
+                    setMessage('Failed to delete guest session');
+                }
+            }
+        });
     };
 
     const cleanupGuests = async () => {
@@ -195,6 +229,41 @@ export default function Admin() {
             console.error('Error cleaning up guests:', err);
             setMessage('Failed to cleanup guest sessions');
         }
+    };
+
+    const clearTable = async () => {
+        setConfirmModal({
+            isOpen: true,
+            title: '🚨 Rensa Hela Tabellen',
+            message: `Är du ABSOLUT säker på att du vill rensa HELA tabellen "${selectedTable}"? Detta kommer att PERMANENT radera alla poster och kan INTE ångras!`,
+            isDangerous: true,
+            confirmText: 'Ja, Rensa',
+            onConfirm: async () => {
+                try {
+            const response = await fetch(`${config.apiUrl}/api/admin/clear-table`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tableName: selectedTable })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setMessage(data.message);
+                setShowClearTableModal(false);
+                fetchData();
+            } else {
+                const data = await response.json();
+                        setMessage(data.error || 'Failed to clear table');
+                    }
+                } catch (err) {
+                    console.error('Error clearing table:', err);
+                    setMessage('Failed to clear table');
+                }
+            }
+        });
     };
 
     // Filter users based on search and admin status
@@ -239,9 +308,22 @@ export default function Admin() {
                     <h1>🛠️ Admin Panel</h1>
                     <p className="admin-subtitle">Hantera användare, rum och systemet</p>
                 </div>
-                <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
-                    ← Tillbaka till Dashboard
-                </button>
+                <div className="header-actions">
+                    <label className="auto-refresh-toggle">
+                        <input
+                            type="checkbox"
+                            checked={autoRefresh}
+                            onChange={(e) => setAutoRefresh(e.target.checked)}
+                        />
+                        <span>🔄 Auto-uppdatera</span>
+                    </label>
+                    <button onClick={() => setShowClearTableModal(true)} className="btn btn-warning">
+                        🗑️ Rensa Tabell
+                    </button>
+                    <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
+                        ← Tillbaka till Dashboard
+                    </button>
+                </div>
             </header>
 
             {message && (
@@ -646,6 +728,60 @@ export default function Admin() {
                     </div>
                 )}
             </div>
+
+            {showClearTableModal && (
+                <div className="modal-overlay" onClick={() => setShowClearTableModal(false)}>
+                    <div className="modal-content clear-table-modal" onClick={(e) => e.stopPropagation()}>
+                        <h2>⚠️ Rensa Tabell</h2>
+                        <p className="warning-text">
+                            Detta kommer att PERMANENT radera alla poster från den valda tabellen!
+                            Detta kan INTE ångras.
+                        </p>
+                        
+                        <div className="form-group">
+                            <label htmlFor="table-select">Välj tabell att rensa:</label>
+                            <select
+                                id="table-select"
+                                value={selectedTable}
+                                onChange={(e) => setSelectedTable(e.target.value)}
+                                className="table-select"
+                            >
+                                <option value="users">Users (Användare)</option>
+                                <option value="rooms">Rooms (Rum)</option>
+                                <option value="guest_sessions">Guest Sessions (Gästsessioner)</option>
+                                <option value="magic_links">Magic Links</option>
+                                <option value="user_preferences">User Preferences (Användarinställningar)</option>
+                                <option value="room_participants">Room Participants (Rumsdeltagare)</option>
+                            </select>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                onClick={() => setShowClearTableModal(false)}
+                                className="btn btn-secondary"
+                            >
+                                Avbryt
+                            </button>
+                            <button
+                                onClick={clearTable}
+                                className="btn btn-danger"
+                            >
+                                🗑️ Rensa {selectedTable}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDangerous={confirmModal.isDangerous}
+                confirmText={confirmModal.confirmText}
+            />
         </div>
     );
 }
