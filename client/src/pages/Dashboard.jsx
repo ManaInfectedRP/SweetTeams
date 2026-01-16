@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import ProfileSettings from '../components/ProfileSettings';
 import './Dashboard.css';
@@ -15,6 +16,7 @@ export default function Dashboard() {
     const [error, setError] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const { user, token, logout } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -119,12 +121,12 @@ export default function Dashboard() {
                             <button 
                                 onClick={() => setShowSettings(true)} 
                                 className="btn btn-secondary btn-sm"
-                                title="Settings"
+                                title={t('dashboard.settings')}
                             >
                                 ⚙️
                             </button>
                             <button onClick={logout} className="btn btn-secondary btn-sm">
-                                Logga ut
+                                {t('dashboard.logout')}
                             </button>
                         </div>
                     </div>
@@ -135,28 +137,28 @@ export default function Dashboard() {
                 <div className="container">
                     <div className="dashboard-header">
                         <div>
-                            <h1 className="dashboard-title">Mina rum</h1>
-                            <p className="text-secondary">Skapa och hantera dina videomöten</p>
+                            <h1 className="dashboard-title">{t('dashboard.myRooms')}</h1>
+                            <p className="text-secondary">{t('dashboard.createAndManage', 'Create and manage your video meetings')}</p>
                         </div>
                         <div className="dashboard-actions-wrap">
                             <form className="join-room-form" onSubmit={handleJoinByCode}>
-                                <label htmlFor="joinCode" className="sr-only">Gå med i Rum</label>
+                                <label htmlFor="joinCode" className="sr-only">{t('dashboard.join')}</label>
                                 <input
                                     id="joinCode"
                                     type="text"
                                     className="form-input join-room-input"
-                                    placeholder="Ange rumskod"
+                                    placeholder={t('dashboard.enterRoomCode', 'Enter room code')}
                                     value={joinCode}
                                     onChange={(e) => setJoinCode(e.target.value)}
                                 />
-                                <button type="submit" className="btn btn-secondary">Gå med i Rum</button>
+                                <button type="submit" className="btn btn-secondary">{t('dashboard.join')}</button>
                             </form>
                             <button
                                 onClick={() => setShowCreateModal(true)}
                                 className="btn btn-primary btn-lg"
                             >
                                 <span style={{ fontSize: '1.25rem' }}>+</span>
-                                Skapa nytt rum
+                                {t('dashboard.createRoom')}
                             </button>
                         </div>
                     </div>
@@ -199,7 +201,7 @@ export default function Dashboard() {
                                             className="btn btn-primary"
                                             style={{ flex: 1 }}
                                         >
-                                            Gå med
+                                            {t('dashboard.join')}
                                         </button>
                                         <button
                                             onClick={() => copyRoomLink(room.linkCode)}
@@ -220,7 +222,7 @@ export default function Dashboard() {
                 <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
                     <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Skapa nytt rum</h2>
+                            <h2>{t('dashboard.createRoom')}</h2>
                             <button
                                 onClick={() => setShowCreateModal(false)}
                                 className="modal-close"
@@ -238,13 +240,13 @@ export default function Dashboard() {
 
                             <div className="form-group">
                                 <label htmlFor="roomName" className="form-label">
-                                    Rumnamn
+                                    {t('dashboard.roomName')}
                                 </label>
                                 <input
                                     id="roomName"
                                     type="text"
                                     className="form-input"
-                                    placeholder="T.ex. Teammöte, Standup..."
+                                    placeholder={t('dashboard.roomNamePlaceholder', 'e.g., Team Meeting, Standup...')}
                                     value={roomName}
                                     onChange={(e) => setRoomName(e.target.value)}
                                     required
@@ -258,14 +260,14 @@ export default function Dashboard() {
                                     onClick={() => setShowCreateModal(false)}
                                     className="btn btn-secondary"
                                 >
-                                    Avbryt
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
                                     disabled={creating}
                                 >
-                                    {creating ? 'Skapar...' : 'Skapa rum'}
+                                    {creating ? t('dashboard.creating', 'Creating...') : t('dashboard.create')}
                                 </button>
                             </div>
                         </form>

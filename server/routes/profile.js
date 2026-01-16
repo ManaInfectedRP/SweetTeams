@@ -87,7 +87,8 @@ router.get('/me', authenticateToken, async (req, res) => {
                 notificationsEnabled: Boolean(preferences.notifications_enabled),
                 autoJoinAudio: Boolean(preferences.auto_join_audio),
                 autoJoinVideo: Boolean(preferences.auto_join_video),
-                darkMode: Boolean(preferences.dark_mode)
+                darkMode: Boolean(preferences.dark_mode),
+                language: preferences.language || 'en'
             }
         });
     } catch (err) {
@@ -216,7 +217,8 @@ router.get('/preferences', authenticateToken, async (req, res) => {
                 notificationsEnabled: true,
                 autoJoinAudio: true,
                 autoJoinVideo: true,
-                darkMode: false
+                darkMode: false,
+                language: 'en'
             });
         }
         
@@ -235,7 +237,8 @@ router.get('/preferences', authenticateToken, async (req, res) => {
             notificationsEnabled: Boolean(preferences.notifications_enabled),
             autoJoinAudio: Boolean(preferences.auto_join_audio),
             autoJoinVideo: Boolean(preferences.auto_join_video),
-            darkMode: Boolean(preferences.dark_mode)
+            darkMode: Boolean(preferences.dark_mode),
+            language: preferences.language || 'en'
         });
     } catch (err) {
         console.error('Error fetching preferences:', err);
@@ -258,7 +261,8 @@ router.patch('/preferences', authenticateToken, async (req, res) => {
             notificationsEnabled,
             autoJoinAudio,
             autoJoinVideo,
-            darkMode
+            darkMode,
+            language
         } = req.body;
 
         // Check if preferences exist, create if not
@@ -277,7 +281,8 @@ router.patch('/preferences', authenticateToken, async (req, res) => {
             notificationsEnabled: Boolean(preferences.notifications_enabled),
             autoJoinAudio: Boolean(preferences.auto_join_audio),
             autoJoinVideo: Boolean(preferences.auto_join_video),
-            darkMode: Boolean(preferences.dark_mode)
+            darkMode: Boolean(preferences.dark_mode),
+            language: preferences.language || 'en'
         });
     } catch (err) {
         console.error('Error updating preferences:', err);

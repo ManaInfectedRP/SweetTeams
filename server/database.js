@@ -102,6 +102,7 @@ async function initializePostgresTables() {
                 auto_join_audio INTEGER DEFAULT 1,
                 auto_join_video INTEGER DEFAULT 1,
                 dark_mode INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
@@ -111,6 +112,12 @@ async function initializePostgresTables() {
         await client.query(`
             ALTER TABLE user_preferences 
             ADD COLUMN IF NOT EXISTS dark_mode INTEGER DEFAULT 0
+        `).catch(() => {});
+        
+        // Add language column if it doesn't exist (for existing databases)
+        await client.query(`
+            ALTER TABLE user_preferences 
+            ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'en'
         `).catch(() => {});
 
         // Rooms table
@@ -236,6 +243,7 @@ function initializeSqliteTables() {
                 auto_join_audio INTEGER DEFAULT 1,
                 auto_join_video INTEGER DEFAULT 1,
                 dark_mode INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
@@ -244,6 +252,11 @@ function initializeSqliteTables() {
         // Add dark_mode column if it doesn't exist (for existing databases)
         db.run(`
             ALTER TABLE user_preferences ADD COLUMN dark_mode INTEGER DEFAULT 0
+        `, () => {});
+        
+        // Add language column if it doesn't exist (for existing databases)
+        db.run(`
+            ALTER TABLE user_preferences ADD COLUMN language TEXT DEFAULT 'en'
         `, () => {});
 
         db.run(`
@@ -648,8 +661,8 @@ export function createUserPreferences(userId, preferences = {}) {
                 const result = await db.pool.query(
                     `INSERT INTO user_preferences (
                         user_id, default_microphone, default_camera, default_speaker,
-                        notifications_enabled, auto_join_audio, auto_join_video, dark_mode
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+                        notifications_enabled, auto_join_audio, auto_join_video, dark_mode, language
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
                     [
                         userId,
                         preferences.defaultMicrophone || null,
@@ -658,7 +671,8 @@ export function createUserPreferences(userId, preferences = {}) {
                         preferences.notificationsEnabled !== undefined ? preferences.notificationsEnabled : 1,
                         preferences.autoJoinAudio !== undefined ? preferences.autoJoinAudio : 1,
                         preferences.autoJoinVideo !== undefined ? preferences.autoJoinVideo : 1,
-                        preferences.darkMode !== undefined ? (preferences.darkMode ? 1 : 0) : 0
+                        preferences.darkMode !== undefined ? (preferences.darkMode ? 1 : 0) : 0,
+                        preferences.language || 'en'
                     ]
                 );
                 resolve({ lastID: result.rows[0].id });
@@ -666,8 +680,8 @@ export function createUserPreferences(userId, preferences = {}) {
                 db.run(
                     `INSERT INTO user_preferences (
                         user_id, default_microphone, default_camera, default_speaker,
-                        notifications_enabled, auto_join_audio, auto_join_video, dark_mode
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        notifications_enabled, auto_join_audio, auto_join_video, dark_mode, language
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         userId,
                         preferences.defaultMicrophone || null,
@@ -676,7 +690,8 @@ export function createUserPreferences(userId, preferences = {}) {
                         preferences.notificationsEnabled !== undefined ? preferences.notificationsEnabled : 1,
                         preferences.autoJoinAudio !== undefined ? preferences.autoJoinAudio : 1,
                         preferences.autoJoinVideo !== undefined ? preferences.autoJoinVideo : 1,
-                        preferences.darkMode !== undefined ? (preferences.darkMode ? 1 : 0) : 0
+                        preferences.darkMode !== undefined ? (preferences.darkMode ? 1 : 0) : 0,
+                        preferences.language || 'en'
                     ],
                     function (err) {
                         if (err) reject(err);
@@ -721,6 +736,10 @@ export async function updateUserPreferences(userId, preferences) {
     if (preferences.darkMode !== undefined) {
         fields.push(usePostgres ? `dark_mode = $${values.length + 1}` : 'dark_mode = ?');
         values.push(preferences.darkMode ? 1 : 0);
+    }
+    if (preferences.language !== undefined) {
+        fields.push(usePostgres ? `language = $${values.length + 1}` : 'language = ?');
+        values.push(preferences.language);
     }
     
     if (fields.length === 0) {

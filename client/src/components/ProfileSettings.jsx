@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import './ProfileSettings.css';
 
 export default function ProfileSettings({ onClose }) {
     const { user, token, updateUser } = useAuth();
+    const { language, setLanguage: changeLanguage, t } = useLanguage();
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -23,7 +25,8 @@ export default function ProfileSettings({ onClose }) {
         notificationsEnabled: true,
         autoJoinAudio: true,
         autoJoinVideo: true,
-        darkMode: false
+        darkMode: false,
+        language: 'en'
     });
 
     // Device lists
@@ -63,6 +66,11 @@ export default function ProfileSettings({ onClose }) {
                 } else {
                     document.documentElement.setAttribute('data-theme', 'light');
                     localStorage.setItem('theme', 'light');
+                }
+                
+                // Apply language if it's set in preferences
+                if (data.language && data.language !== language) {
+                    changeLanguage(data.language);
                 }
             }
         } catch (err) {
@@ -212,9 +220,14 @@ export default function ProfileSettings({ onClose }) {
 
             // Apply dark mode immediately
             document.documentElement.setAttribute('data-theme', preferences.darkMode ? 'dark' : 'light');
+            
+            // Apply language immediately
+            if (preferences.language) {
+                changeLanguage(preferences.language);
+            }
             localStorage.setItem('theme', preferences.darkMode ? 'dark' : 'light');
 
-            setMessage('Preferences saved successfully!');
+            setMessage(t('profile.preferencesUpdated'));
             setTimeout(() => setMessage(''), 3000);
         } catch (err) {
             setError(err.message);
@@ -227,7 +240,7 @@ export default function ProfileSettings({ onClose }) {
         <div className="profile-settings-overlay" onClick={onClose}>
             <div className="profile-settings-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="profile-settings-header">
-                    <h2>Settings</h2>
+                    <h2>{t('profile.title')}</h2>
                     <button className="close-btn" onClick={onClose}>✕</button>
                 </div>
 
@@ -236,19 +249,19 @@ export default function ProfileSettings({ onClose }) {
                         className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                         onClick={() => setActiveTab('profile')}
                     >
-                        Profile
+                        {t('profile.profile')}
                     </button>
                     <button
                         className={`tab-btn ${activeTab === 'devices' ? 'active' : ''}`}
                         onClick={() => setActiveTab('devices')}
                     >
-                        Devices
+                        {t('profile.devices')}
                     </button>
                     <button
                         className={`tab-btn ${activeTab === 'preferences' ? 'active' : ''}`}
                         onClick={() => setActiveTab('preferences')}
                     >
-                        Preferences
+                        {t('profile.preferences')}
                     </button>
                 </div>
 
@@ -420,8 +433,23 @@ export default function ProfileSettings({ onClose }) {
                                                 darkMode: e.target.checked
                                             })}
                                         />
-                                        <span>Dark mode</span>
+                                        <span>{t('profile.darkMode')}</span>
                                     </label>
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label htmlFor="language">{t('profile.language')}</label>
+                                    <select
+                                        id="language"
+                                        value={preferences.language || 'en'}
+                                        onChange={(e) => setPreferences({
+                                            ...preferences,
+                                            language: e.target.value
+                                        })}
+                                    >
+                                        <option value="en">{t('languages.en')}</option>
+                                        <option value="sv">{t('languages.sv')}</option>
+                                    </select>
                                 </div>
 
                                 <div className="form-group checkbox-group">
@@ -434,7 +462,7 @@ export default function ProfileSettings({ onClose }) {
                                                 autoJoinAudio: e.target.checked
                                             })}
                                         />
-                                        <span>Auto-join with audio enabled</span>
+                                        <span>{t('profile.autoJoinAudio')}</span>
                                     </label>
                                 </div>
 
@@ -448,7 +476,7 @@ export default function ProfileSettings({ onClose }) {
                                                 autoJoinVideo: e.target.checked
                                             })}
                                         />
-                                        <span>Auto-join with video enabled</span>
+                                        <span>{t('profile.autoJoinVideo')}</span>
                                     </label>
                                 </div>
 
@@ -462,7 +490,7 @@ export default function ProfileSettings({ onClose }) {
                                                 notificationsEnabled: e.target.checked
                                             })}
                                         />
-                                        <span>Enable notifications</span>
+                                        <span>{t('profile.notifications')}</span>
                                     </label>
                                 </div>
 
@@ -471,7 +499,7 @@ export default function ProfileSettings({ onClose }) {
                                     className="btn btn-primary"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Saving...' : 'Save Preferences'}
+                                    {loading ? t('profile.saving') : t('profile.savePreferences')}
                                 </button>
                             </form>
                         </div>
