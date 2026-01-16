@@ -20,6 +20,7 @@ export default function Room() {
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
     const [showInviteModal, setShowInviteModal] = useState(false);
+    const [darkMode, setDarkMode] = useState(false);
     const previousHandsRef = useRef(new Set());
 
     const {
@@ -196,7 +197,7 @@ export default function Room() {
     }
 
     return (
-        <div className="room-container">
+        <div className={`room-container ${darkMode ? 'dark-mode' : ''}`}>
             <div className="room-header">
                 <div className="room-info">
                     <h2 className="room-title">{room?.name}</h2>
@@ -219,12 +220,21 @@ export default function Room() {
                         🔗 {t('room.share', 'Share')}
                     </button>
                 </div>
-                <button
-                    onClick={() => setShowChat(!showChat)}
-                    className="btn btn-secondary btn-sm"
-                >
-                    {showChat ? t('room.hideChat', 'Hide') : t('room.showChat', 'Show')} {t('room.chat')}
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                        onClick={() => setDarkMode(!darkMode)}
+                        className="btn btn-secondary btn-sm"
+                        title={darkMode ? 'Light Mode' : 'Dark Mode'}
+                    >
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
+                    <button
+                        onClick={() => setShowChat(!showChat)}
+                        className="btn btn-secondary btn-sm"
+                    >
+                        {showChat ? t('room.hideChat', 'Hide') : t('room.showChat', 'Show')} {t('room.chat')}
+                    </button>
+                </div>
             </div>
 
             <div className="room-content">

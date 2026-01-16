@@ -118,3 +118,34 @@
         border-top: 1px solid var(--color-border);
     }
 }
+
+/* Dark Mode Styles */
+.room-container.dark-mode {
+    background: #1a1a1a;
+}
+
+.room-container.dark-mode .room-header {
+    background: #2d2d2d;
+    border-bottom-color: #404040;
+}
+
+.room-container.dark-mode .room-title {
+    color: #f0f0f0;
+}
+
+.room-container.dark-mode .room-participants {
+    background: #3a3a3a;
+    border-color: #505050;
+    color: #d0d0d0;
+}
+
+.room-container.dark-mode .btn-secondary {
+    background: #3a3a3a;
+    border-color: #505050;
+    color: #f0f0f0;
+}
+
+.room-container.dark-mode .btn-secondary:hover {
+    background: #4a4a4a;
+    border-color: #606060;
+}
