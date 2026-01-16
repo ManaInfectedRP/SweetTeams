@@ -114,6 +114,11 @@ export const translations = {
       kickOut: "Kick out",
       moderator: "Moderator",
       cameraOff: "Camera off",
+      sendInvite: "Send Invite with Email",
+      camera: "Camera Source",
+        microphone: "Microphone Source",
+        speaker: "Speaker Output",
+        micVolume: "Microphone Volume",
     },
     
     // Profile Settings
@@ -363,6 +368,24 @@ export const translations = {
       back: "Back",
     },
     
+    invite: {
+        sendEmailInvitation: "Send Email Invitation",
+        enterAtLeastOneEmail: "Enter at least one email address",
+        invalidEmails: "Invalid email addresses",
+        couldNotSend: "Could not send invitations",
+        emailLabel: "Email Addresses",
+        emailPlaceholder: "Enter email addresses separated by commas",
+        messageLabel: "Message (optional)",
+        messagePlaceholder: "Add a personal message...",
+        send: "Send Invitations",
+        sending: "Sending...",
+        success: "Invitations sent successfully!",
+        invitationsSent: "Invitations sent!",
+        cancel: "Cancel",
+        sendInvitations: "Send Invitations",
+        enterOneOrMore: "Enter one or more email addresses",
+    },
+
     // Languages
     languages: {
       en: "English",
@@ -482,6 +505,11 @@ export const translations = {
       kickOut: "Sparka ut",
       moderator: "Moderator",
       cameraOff: "Kamera av",
+        sendInvite: "Skicka inbjudan via email",
+        camera: "Källkamera",
+        microphone: "Mikrofonkälla",
+        speaker: "Högtalarutgång",
+        micVolume: "Mikrofonvolym",
     },
     
     // Profile Settings
@@ -704,7 +732,7 @@ export const translations = {
         autoRefresh: "Auto-uppdatera",
         backToDashboard: "Tillbaka till översikt",
         subtitle: "Hantera användare, rum och systemet",
-        
+
     },
     
     // Guest Join
@@ -730,6 +758,24 @@ export const translations = {
       search: "Sök",
       filter: "Filtrera",
       back: "Tillbaka",
+    },
+    
+    invite: {
+        sendEmailInvitation: "Skicka inbjudan via email",
+        enterAtLeastOneEmail: "Ange minst en e-postadress",
+        invalidEmails: "Ogiltiga e-postadresser",
+        couldNotSend: "Kunde inte skicka inbjudningar",
+        emailLabel: "E-postadresser",
+        emailPlaceholder: "Ange e-postadresser separerade med kommatecken",
+        messageLabel: "Meddelande (valfritt)",
+        messagePlaceholder: "Lägg till ett personligt meddelande...",
+        send: "Skicka inbjudningar",
+        sending: "Skickar...",
+        success: "Inbjudningar skickade!",
+        invitationsSent: "Inbjudningar skickade!",
+        cancel: "Avbryt",
+        sendInvitations: "Skicka inbjudningar",
+        enterOneOrMore: "Ange en eller flera e-postadresser",
     },
     
     // Languages
