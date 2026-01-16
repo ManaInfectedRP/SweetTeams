@@ -341,6 +341,17 @@ export const translations = {
         autoRefresh: "Auto-refresh",
         backToDashboard: "Back to Dashboard",
         subtitle: "Manage users, rooms and system",
+        searchUsers: "Search users...",
+        allUsers: "All users",
+        adminsOnly: "Admins only",
+        regularUsersOnly: "Regular users only",
+        deleteUserTitle: "Delete User",
+        deleteUserMessage: "Are you sure you want to delete this user? This cannot be undone.",
+        deleteRoomTitle: "Delete Room",
+        deleteRoomMessage: "Are you sure you want to delete this room?",
+        deleteGuestTitle: "Delete Guest Session",
+        deleteGuestMessage: "Are you sure you want to delete this guest session? This cannot be undone.",
+        
     },
     
     // Guest Join
@@ -369,6 +380,7 @@ export const translations = {
     },
     
     invite: {
+        emailAddresses : "Email Addresses",
         sendEmailInvitation: "Send Email Invitation",
         enterAtLeastOneEmail: "Enter at least one email address",
         invalidEmails: "Invalid email addresses",
@@ -384,6 +396,8 @@ export const translations = {
         cancel: "Cancel",
         sendInvitations: "Send Invitations",
         enterOneOrMore: "Enter one or more email addresses",
+        message: "Message",
+        optional: "optional",
     },
 
     // Languages
@@ -732,7 +746,17 @@ export const translations = {
         autoRefresh: "Auto-uppdatera",
         backToDashboard: "Tillbaka till översikt",
         subtitle: "Hantera användare, rum och systemet",
-
+        searchUsers: "Sök användare...",
+        allUsers: "Alla användare",
+        adminsOnly: "Endast admins",
+        regularUsersOnly: "Endast vanliga användare",
+        deleteUserTitle: "Radera användare",
+        deleteUserMessage: "Är du säker på att du vill radera denna användare? Detta kan inte ångras.",
+        deleteRoomTitle: "Radera rum",
+        deleteRoomMessage: "Är du säker på att du vill radera detta rum? Detta kan inte ångras.",
+        deleteGuestTitle: "Radera gästsession",
+        deleteGuestMessage: "Är du säker på att du vill radera denna gästsession? Detta kan inte ångras.",
+        
     },
     
     // Guest Join
@@ -761,6 +785,8 @@ export const translations = {
     },
     
     invite: {
+        emailAddresses : "E-postadresser",
+        message : "Meddelande",
         sendEmailInvitation: "Skicka inbjudan via email",
         enterAtLeastOneEmail: "Ange minst en e-postadress",
         invalidEmails: "Ogiltiga e-postadresser",
@@ -776,8 +802,9 @@ export const translations = {
         cancel: "Avbryt",
         sendInvitations: "Skicka inbjudningar",
         enterOneOrMore: "Ange en eller flera e-postadresser",
+        optional: "valfritt",
     },
-    
+
     // Languages
     languages: {
       en: "Engelska",
