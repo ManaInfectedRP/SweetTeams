@@ -363,7 +363,7 @@ export function useWebRTC(roomId, token) {
                 setTimeout(() => {
                     // Force refresh the remote stream for this peer
                     const peer = peersRef.current.get(fromSocketId);
-                    if (peer && peer._pc) {
+                    if (peer && peer._pc && peer._pc.getReceivers) {
                         console.log('Found peer connection for', fromSocketId);
                         const receivers = peer._pc.getReceivers();
                         console.log('Receivers:', receivers.length);
@@ -653,6 +653,7 @@ export function useWebRTC(roomId, token) {
         // Monitor for track changes on the remote stream
         // This catches track replacements that don't trigger ontrack
         const monitorTracks = () => {
+            if (!peer._pc || !peer._pc.getReceivers) return;
             const receivers = peer._pc.getReceivers();
             receivers.forEach(receiver => {
                 if (receiver.track) {
