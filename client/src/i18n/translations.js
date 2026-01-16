@@ -361,6 +361,8 @@ export const translations = {
         userPreferencesTable: "User Preferences",
         roomParticipantsTable: "Room Participants",
         clearTableButton: "Clear",
+        clearTableTitle: "Clear Entire Table",
+        clearTableMessage: "This will PERMANENTLY delete all records from the selected table! This CANNOT be undone.",
     },
     
     // Guest Join
@@ -775,6 +777,8 @@ export const translations = {
         userPreferencesTable: "Användarinställningar",
         roomParticipantsTable: "Rumsdeltagare",
         clearTableButton: "Rensa",
+        clearTableTitle: "Rensa hela tabellen",
+        clearTableMessage: "Detta kommer att PERMANENT radera alla poster från den valda tabellen! Detta kan INTE ångras.",
 
     },
     
