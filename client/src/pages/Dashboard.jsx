@@ -173,13 +173,13 @@ export default function Dashboard() {
                     ) : rooms.length === 0 ? (
                         <div className="empty-state card-glass">
                             <div className="empty-icon">📹</div>
-                            <h3>Inga rum ännu</h3>
-                            <p className="text-secondary">Skapa ditt första rum för att komma igång</p>
+                            <h3>{t('dashboard.noRoomsYet')}</h3>
+                            <p className="text-secondary">{t('dashboard.createFirstRoom')}</p>
                             <button
                                 onClick={() => setShowCreateModal(true)}
                                 className="btn btn-primary mt-lg"
                             >
-                                Skapa rum
+                                {t('dashboard.createRoom')}
                             </button>
                         </div>
                     ) : (
@@ -192,7 +192,7 @@ export default function Dashboard() {
                                     </div>
                                     <div className="room-meta">
                                         <span className="text-muted text-sm">
-                                            Skapad {new Date(room.created_at).toLocaleDateString('sv-SE')}
+                                            {t('dashboard.created')} {new Date(room.created_at).toLocaleDateString('sv-SE')}
                                         </span>
                                     </div>
                                     <div className="room-actions">
@@ -206,7 +206,7 @@ export default function Dashboard() {
                                         <button
                                             onClick={() => copyRoomLink(room.linkCode)}
                                             className="btn btn-secondary"
-                                            title="Kopiera länk"
+                                            title={t('dashboard.copyLink')}
                                         >
                                             📋
                                         </button>

@@ -444,7 +444,6 @@ export default function Admin() {
                                     <span className="label">{t('admin.regularUsers')}:</span>
                                     <span className="value">{users.filter(u => !u.is_admin).length}</span>
                                 </div>
-                                </div>
                             </div>
                         </div>
                     </div>
