@@ -20,7 +20,9 @@ export default function Room() {
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
     const [showInviteModal, setShowInviteModal] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(
+        document.documentElement.getAttribute('data-theme') === 'dark'
+    );
     const previousHandsRef = useRef(new Set());
 
     const {
@@ -172,6 +174,13 @@ export default function Room() {
         }
     };
 
+    const toggleDarkMode = () => {
+        const newTheme = isDarkMode ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        setIsDarkMode(!isDarkMode);
+    };
+
     const handleLeave = () => {
         // Check if user is a guest
         const isGuest = localStorage.getItem('isGuest') === 'true';
@@ -197,7 +206,7 @@ export default function Room() {
     }
 
     return (
-        <div className={`room-container ${darkMode ? 'dark-mode' : ''}`}>
+        <div className="room-container">
             <div className="room-header">
                 <div className="room-info">
                     <h2 className="room-title">{room?.name}</h2>
@@ -222,11 +231,11 @@ export default function Room() {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
-                        onClick={() => setDarkMode(!darkMode)}
+                        onClick={toggleDarkMode}
                         className="btn btn-secondary btn-sm"
-                        title={darkMode ? 'Light Mode' : 'Dark Mode'}
+                        title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
                     >
-                        {darkMode ? '☀️' : '🌙'}
+                        {isDarkMode ? '☀️' : '🌙'}
                     </button>
                     <button
                         onClick={() => setShowChat(!showChat)}
