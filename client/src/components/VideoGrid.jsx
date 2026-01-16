@@ -359,6 +359,7 @@ export default function VideoGrid({
 }
 
 function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId, profilePicture }) {
+    const { t } = useLanguage();
     const videoRef = useRef(null);
 
     useEffect(() => {
@@ -510,6 +511,7 @@ function ScreenShareVideo({ stream, username, label }) {
 
 // RemoteThumbnail component for participant thumbnails during screen share
 function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId, profilePicture }) {
+    const { t } = useLanguage();
     const videoRef = useRef(null);
 
     useEffect(() => {
