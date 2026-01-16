@@ -22,7 +22,8 @@ export default function ProfileSettings({ onClose }) {
         defaultSpeaker: '',
         notificationsEnabled: true,
         autoJoinAudio: true,
-        autoJoinVideo: true
+        autoJoinVideo: true,
+        darkMode: false
     });
 
     // Device lists
@@ -35,6 +36,12 @@ export default function ProfileSettings({ onClose }) {
     useEffect(() => {
         fetchPreferences();
         fetchDevices();
+        
+        // Load theme from localStorage
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            setPreferences(prev => ({ ...prev, darkMode: true }));
+        }
     }, []);
 
     const fetchPreferences = async () => {
@@ -48,6 +55,15 @@ export default function ProfileSettings({ onClose }) {
             if (response.ok) {
                 const data = await response.json();
                 setPreferences(data);
+                
+                // Apply dark mode if it's set in preferences
+                if (data.darkMode) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    localStorage.setItem('theme', 'light');
+                }
             }
         } catch (err) {
             console.error('Error fetching preferences:', err);
@@ -193,6 +209,10 @@ export default function ProfileSettings({ onClose }) {
             if (!response.ok) {
                 throw new Error('Failed to update preferences');
             }
+
+            // Apply dark mode immediately
+            document.documentElement.setAttribute('data-theme', preferences.darkMode ? 'dark' : 'light');
+            localStorage.setItem('theme', preferences.darkMode ? 'dark' : 'light');
 
             setMessage('Preferences saved successfully!');
             setTimeout(() => setMessage(''), 3000);
@@ -390,6 +410,20 @@ export default function ProfileSettings({ onClose }) {
                     {activeTab === 'preferences' && (
                         <div className="settings-section">
                             <form onSubmit={handlePreferencesUpdate}>
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={preferences.darkMode}
+                                            onChange={(e) => setPreferences({
+                                                ...preferences,
+                                                darkMode: e.target.checked
+                                            })}
+                                        />
+                                        <span>Dark mode</span>
+                                    </label>
+                                </div>
+
                                 <div className="form-group checkbox-group">
                                     <label>
                                         <input

@@ -8,6 +8,12 @@ export function AuthProvider({ children }) {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
+    // Initialize theme from localStorage
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }, []);
+
     useEffect(() => {
         // Auto-login för localhost development
         const isLocalhost = window.location.hostname === 'localhost' || 

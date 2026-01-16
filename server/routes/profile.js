@@ -86,7 +86,8 @@ router.get('/me', authenticateToken, async (req, res) => {
                 defaultSpeaker: preferences.default_speaker,
                 notificationsEnabled: Boolean(preferences.notifications_enabled),
                 autoJoinAudio: Boolean(preferences.auto_join_audio),
-                autoJoinVideo: Boolean(preferences.auto_join_video)
+                autoJoinVideo: Boolean(preferences.auto_join_video),
+                darkMode: Boolean(preferences.dark_mode)
             }
         });
     } catch (err) {
@@ -214,7 +215,8 @@ router.get('/preferences', authenticateToken, async (req, res) => {
                 defaultSpeaker: null,
                 notificationsEnabled: true,
                 autoJoinAudio: true,
-                autoJoinVideo: true
+                autoJoinVideo: true,
+                darkMode: false
             });
         }
         
@@ -232,7 +234,8 @@ router.get('/preferences', authenticateToken, async (req, res) => {
             defaultSpeaker: preferences.default_speaker,
             notificationsEnabled: Boolean(preferences.notifications_enabled),
             autoJoinAudio: Boolean(preferences.auto_join_audio),
-            autoJoinVideo: Boolean(preferences.auto_join_video)
+            autoJoinVideo: Boolean(preferences.auto_join_video),
+            darkMode: Boolean(preferences.dark_mode)
         });
     } catch (err) {
         console.error('Error fetching preferences:', err);
@@ -254,7 +257,8 @@ router.patch('/preferences', authenticateToken, async (req, res) => {
             defaultSpeaker,
             notificationsEnabled,
             autoJoinAudio,
-            autoJoinVideo
+            autoJoinVideo,
+            darkMode
         } = req.body;
 
         // Check if preferences exist, create if not
@@ -272,7 +276,8 @@ router.patch('/preferences', authenticateToken, async (req, res) => {
             defaultSpeaker: preferences.default_speaker,
             notificationsEnabled: Boolean(preferences.notifications_enabled),
             autoJoinAudio: Boolean(preferences.auto_join_audio),
-            autoJoinVideo: Boolean(preferences.auto_join_video)
+            autoJoinVideo: Boolean(preferences.auto_join_video),
+            darkMode: Boolean(preferences.dark_mode)
         });
     } catch (err) {
         console.error('Error updating preferences:', err);
