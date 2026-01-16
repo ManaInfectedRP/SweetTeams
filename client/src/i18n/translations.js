@@ -351,7 +351,16 @@ export const translations = {
         deleteRoomMessage: "Are you sure you want to delete this room?",
         deleteGuestTitle: "Delete Guest Session",
         deleteGuestMessage: "Are you sure you want to delete this guest session? This cannot be undone.",
-        
+        clearTableWarning: "This will PERMANENTLY delete all records from the selected table! This CANNOT be undone.",
+        clearTableConfirm: "Yes, clear",
+        selectTableToClear: "Select table to clear",
+        usersTable: "Users",
+        roomsTable: "Rooms",
+        guestSessionsTable: "Guest Sessions",
+        magicLinksTable: "Magic Links",
+        userPreferencesTable: "User Preferences",
+        roomParticipantsTable: "Room Participants",
+        clearTableButton: "Clear",
     },
     
     // Guest Join
@@ -756,7 +765,17 @@ export const translations = {
         deleteRoomMessage: "Är du säker på att du vill radera detta rum? Detta kan inte ångras.",
         deleteGuestTitle: "Radera gästsession",
         deleteGuestMessage: "Är du säker på att du vill radera denna gästsession? Detta kan inte ångras.",
-        
+        clearTableWarning: "Detta kommer att PERMANENT radera alla poster från den valda tabellen! Detta kan INTE ångras.",
+        clearTableConfirm: "Ja, rensa",
+        selectTableToClear: "Välj tabell att rensa:",
+        usersTable: "Användare",
+        roomsTable: "Rum",
+        guestSessionsTable: "Gästsessioner",
+        magicLinksTable: "Magic Links",
+        userPreferencesTable: "Användarinställningar",
+        roomParticipantsTable: "Rumsdeltagare",
+        clearTableButton: "Rensa",
+
     },
     
     // Guest Join
