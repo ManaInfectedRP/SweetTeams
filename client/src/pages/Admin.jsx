@@ -308,7 +308,7 @@ export default function Admin() {
             <header className="admin-header">
                 <div>
                     <h1>🛠️ Admin Panel</h1>
-                    <p className="admin-subtitle">Hantera användare, rum och systemet</p>
+                    <p className="admin-subtitle">{t('admin.subtitle', 'Manage users, rooms and system')}</p>
                 </div>
                 <div className="header-actions">
                     <label className="auto-refresh-toggle">
@@ -320,7 +320,7 @@ export default function Admin() {
                         <span>🔄 {t('admin.autoRefresh', 'Auto-refresh')}</span>
                     </label>
                     <button onClick={() => setShowClearTableModal(true)} className="btn btn-warning">
-                        🗑️ {t('admin.clearTable')}
+                        🗑️ {t('admin.clearTable', 'Clear Table')}
                     </button>
                     <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
                         ← {t('admin.backToDashboard', 'Back to Dashboard')}
@@ -376,60 +376,60 @@ export default function Admin() {
                                 <div className="stat-icon">👥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.users}</div>
-                                    <div className="stat-label">{t('admin.totalUsers')}</div>
+                                    <div className="stat-label">{t('admin.totalUsers', 'Total Users')}</div>
                                 </div>
                             </div>
                             <div className="stat-card success">
                                 <div className="stat-icon">🎥</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.rooms}</div>
-                                    <div className="stat-label">{t('admin.totalRooms')}</div>
+                                    <div className="stat-label">{t('admin.totalRooms', 'Total Rooms')}</div>
                                 </div>
                             </div>
                             <div className="stat-card secondary">
                                 <div className="stat-icon">👤</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.guestSessions || 0}</div>
-                                    <div className="stat-label">{t('admin.activeGuests')}</div>
+                                    <div className="stat-label">{t('admin.activeGuests', 'Active Guests')}</div>
                                 </div>
                             </div>
                             <div className="stat-card warning">
                                 <div className="stat-icon">🔗</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.magicLinks}</div>
-                                    <div className="stat-label">{t('admin.magicLinks')}</div>
+                                    <div className="stat-label">{t('admin.magicLinks', 'Magic Links')}</div>
                                 </div>
                             </div>
                             <div className="stat-card info">
                                 <div className="stat-icon">⚙️</div>
                                 <div className="stat-info">
                                     <div className="stat-value">{stats.preferences}</div>
-                                    <div className="stat-label">Användarinställningar</div>
+                                    <div className="stat-label">{t('admin.userPreferences', 'User Preferences')}</div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="system-info-grid">
                             <div className="system-card">
-                                <h3>🗄️ Databas</h3>
+                                <h3>🗄️ {t('admin.database', 'Database')}</h3>
                                 <div className="system-info-item">
-                                    <span className="label">Typ:</span>
+                                    <span className="label">{t('admin.type', 'Type')}:</span>
                                     <span className="value">{stats.databaseType}</span>
                                 </div>
                                 <div className="system-info-item">
-                                    <span className="label">Status:</span>
-                                    <span className="value status-active">🟢 Aktiv</span>
+                                    <span className="label">{t('admin.status', 'Status')}:</span>
+                                    <span className="value status-active">🟢 {t('admin.active', 'Active')}</span>
                                 </div>
                             </div>
                             
                             <div className="system-card">
                                 <h3>📊 {t('admin.activity', 'Activity')}</h3>
                                 <div className="system-info-item">
-                                    <span className="label">{t('admin.activeRoomsLabel')}:</span>
+                                    <span className="label">{t('admin.activeRoomsLabel', 'Active rooms')}:</span>
                                     <span className="value">{stats.rooms}</span>
                                 </div>
                                 <div className="system-info-item">
-                                    <span className="label">{t('admin.registeredLabel')}:</span>
+                                    <span className="label">{t('admin.registeredLabel', 'Registered')}:</span>
                                     <span className="value">{stats.users}</span>
                                 </div>
                             </div>
@@ -437,11 +437,11 @@ export default function Admin() {
                             <div className="system-card">
                                 <h3>🔐 {t('admin.security', 'Security')}</h3>
                                 <div className="system-info-item">
-                                    <span className="label">{t('admin.admins')}:</span>
+                                    <span className="label">{t('admin.admins', 'Admins')}:</span>
                                     <span className="value">{users.filter(u => u.is_admin).length}</span>
                                 </div>
                                 <div className="system-info-item">
-                                    <span className="label">{t('admin.regularUsers')}:</span>
+                                    <span className="label">{t('admin.regularUsers', 'Regular users')}:</span>
                                     <span className="value">{users.filter(u => !u.is_admin).length}</span>
                                 </div>
                             </div>
@@ -452,11 +452,11 @@ export default function Admin() {
                 {activeTab === 'users' && (
                     <div className="users-section">
                         <div className="section-header">
-                            <h2>{t('admin.userManagement')}</h2>
+                            <h2>{t('admin.userManagement', 'User Management')}</h2>
                             <div className="search-filter-bar">
                                 <input
                                     type="text"
-                                    placeholder={t('admin.searchUsers')}
+                                    placeholder={t('admin.searchUsers', 'Search users...')}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
@@ -466,9 +466,9 @@ export default function Admin() {
                                     onChange={(e) => setFilterAdmin(e.target.value)}
                                     className="filter-select"
                                 >
-                                    <option value="all">{t('admin.allUsers')}</option>
-                                    <option value="admin">{t('admin.adminsOnly')}</option>
-                                    <option value="user">{t('admin.regularUsersOnly')}</option>
+                                    <option value="all">{t('admin.allUsers', 'All users')}</option>
+                                    <option value="admin">{t('admin.adminsOnly', 'Admins only')}</option>
+                                    <option value="user">{t('admin.regularUsersOnly', 'Regular users only')}</option>
                                 </select>
                             </div>
                         </div>
