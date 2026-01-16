@@ -375,7 +375,7 @@ export const translations = {
         roomParticipantsTable: "Room Participants",
         clearTableButton: "Clear",
         clearTableTitle: "Clear Entire Table",
-        clearTableMessage: "Are you ABSOLUTELY sure you want to clear the ENTIRE \"${selectedTable}\" table? This will PERMANENTLY delete all records and CANNOT be undone!",
+        clearTableMessage: "This will PERMANENTLY delete all records and CANNOT be undone!",
     },
     
     // Guest Join
@@ -803,7 +803,7 @@ export const translations = {
         roomParticipantsTable: "Rumsdeltagare",
         clearTableButton: "Rensa",
         clearTableTitle: "Rensa hela tabellen",
-        clearTableMessage: "Är du HELT säker på att du vill rensa HELA \"${selectedTable}\"-tabellen? Detta kommer att PERMANENT radera alla poster och kan INTE ångras!",
+        clearTableMessage: "Detta kommer att PERMANENT radera alla poster och kan INTE ångras!",
 
     },
     
