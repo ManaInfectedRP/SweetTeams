@@ -1385,11 +1385,8 @@ export function useWebRTC(roomId, token) {
     
     const startRecording = async () => {
         try {
-            // Create a canvas to render the meeting
-            const canvas = document.createElement('canvas');
-            canvas.width = 1920;
-            canvas.height = 1080;
-            const ctx = canvas.getContext('2d');
+            // Try simple approach first: just record local stream with audio mixing
+            console.log('Starting recording with simplified approach...');
             
             // Create a destination for mixed audio
             const audioContext = new AudioContext();
@@ -1411,7 +1408,7 @@ export function useWebRTC(roomId, token) {
                 }
             }
             
-            // Add remote audio streams - remoteStreams is a Map with values { stream, username }
+            // Add remote audio streams
             remoteStreams.forEach(({ stream }) => {
                 if (stream && typeof stream.getAudioTracks === 'function') {
                     const audioTracks = stream.getAudioTracks();
@@ -1429,138 +1426,76 @@ export function useWebRTC(roomId, token) {
                 }
             });
             
-            // Get all video elements from the page
-            const getVideoElements = () => {
-                const videos = [];
-                
-                // Find all video elements in the video grid
-                const videoElements = document.querySelectorAll('.video-grid video, .video-tile video');
-                videoElements.forEach(video => {
-                    if (video.srcObject && video.readyState >= 2) { // HAVE_CURRENT_DATA
-                        videos.push(video);
-                    }
-                });
-                
-                return videos;
-            };
-            
-            // Render frame to canvas
-            const renderFrame = () => {
-                if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
-                    return;
+            // Get video track from local stream
+            let videoTrack = null;
+            if (localStreamRef.current) {
+                const videoTracks = localStreamRef.current.getVideoTracks();
+                if (videoTracks.length > 0 && videoTracks[0].enabled) {
+                    videoTrack = videoTracks[0];
+                    console.log('Using local video track for recording');
                 }
-                
-                // Clear canvas
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                const videos = getVideoElements();
-                const videoCount = videos.length;
-                
-                if (videoCount === 0) {
-                    // No videos, just show a message
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = '48px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Väntar på videoströmmar...', canvas.width / 2, canvas.height / 2);
-                } else {
-                    // Calculate grid layout
-                    let cols, rows;
-                    if (videoCount === 1) {
-                        cols = 1; rows = 1;
-                    } else if (videoCount === 2) {
-                        cols = 2; rows = 1;
-                    } else if (videoCount <= 4) {
-                        cols = 2; rows = 2;
-                    } else if (videoCount <= 6) {
-                        cols = 3; rows = 2;
-                    } else if (videoCount <= 9) {
-                        cols = 3; rows = 3;
-                    } else {
-                        cols = 4; rows = Math.ceil(videoCount / 4);
-                    }
-                    
-                    const cellWidth = canvas.width / cols;
-                    const cellHeight = canvas.height / rows;
-                    const padding = 10;
-                    
-                    // Draw each video
-                    videos.forEach((video, index) => {
-                        const col = index % cols;
-                        const row = Math.floor(index / cols);
-                        
-                        const x = col * cellWidth + padding;
-                        const y = row * cellHeight + padding;
-                        const w = cellWidth - padding * 2;
-                        const h = cellHeight - padding * 2;
-                        
-                        try {
-                            // Calculate aspect ratio to fit video
-                            const videoAspect = video.videoWidth / video.videoHeight;
-                            const cellAspect = w / h;
-                            
-                            let drawW = w;
-                            let drawH = h;
-                            let drawX = x;
-                            let drawY = y;
-                            
-                            if (videoAspect > cellAspect) {
-                                drawH = w / videoAspect;
-                                drawY = y + (h - drawH) / 2;
-                            } else {
-                                drawW = h * videoAspect;
-                                drawX = x + (w - drawW) / 2;
-                            }
-                            
-                            ctx.drawImage(video, drawX, drawY, drawW, drawH);
-                        } catch (err) {
-                            // Video not ready, skip
-                            console.warn('Could not draw video:', err);
-                        }
-                    });
-                }
-                
-                requestAnimationFrame(renderFrame);
-            };
+            }
             
-            // Start rendering
-            renderFrame();
-            
-            // Capture canvas stream and combine with audio
-            const canvasStream = canvas.captureStream(30); // 30 FPS
-            console.log('Canvas stream created:', canvasStream.getVideoTracks().length, 'video tracks');
-            
-            const recordStream = new MediaStream([
-                ...canvasStream.getVideoTracks(),
-                ...dest.stream.getAudioTracks()
-            ]);
+            // Create recording stream
+            let recordStream;
+            if (videoTrack) {
+                recordStream = new MediaStream([
+                    videoTrack,
+                    ...dest.stream.getAudioTracks()
+                ]);
+            } else {
+                // Audio only
+                recordStream = new MediaStream([
+                    ...dest.stream.getAudioTracks()
+                ]);
+                console.warn('No video track available, recording audio only');
+            }
             
             console.log('Record stream tracks:', recordStream.getTracks().length);
             
             recordedChunksRef.current = [];
             
             // Try different codecs with fallback
-            let mimeType = 'video/webm;codecs=vp9,opus';
-            if (!MediaRecorder.isTypeSupported(mimeType)) {
-                console.warn('vp9 not supported, trying vp8');
-                mimeType = 'video/webm;codecs=vp8,opus';
+            let mimeType;
+            if (videoTrack) {
+                mimeType = 'video/webm;codecs=vp9,opus';
                 if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    console.warn('vp8 not supported, using default');
-                    mimeType = 'video/webm';
+                    console.warn('vp9 not supported, trying vp8');
+                    mimeType = 'video/webm;codecs=vp8,opus';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        console.warn('vp8 not supported, trying h264');
+                        mimeType = 'video/webm;codecs=h264,opus';
+                        if (!MediaRecorder.isTypeSupported(mimeType)) {
+                            console.warn('h264 not supported, using default');
+                            mimeType = 'video/webm';
+                        }
+                    }
+                }
+            } else {
+                // Audio only mime types
+                mimeType = 'audio/webm;codecs=opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/webm';
                 }
             }
             
             console.log('Using mimeType:', mimeType);
             
-            const mediaRecorder = new MediaRecorder(recordStream, {
-                mimeType: mimeType,
-                videoBitsPerSecond: 2500000
-            });
+            const options = { mimeType };
+            if (videoTrack) {
+                options.videoBitsPerSecond = 2500000;
+            }
+            options.audioBitsPerSecond = 128000;
+            
+            const mediaRecorder = new MediaRecorder(recordStream, options);
+            
+            let chunkCount = 0;
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
-                    console.log('Recording chunk received:', event.data.size, 'bytes');
+                    console.log(`Chunk ${chunkCount}:`, event.data.size, 'bytes');
                     recordedChunksRef.current.push(event.data);
+                    chunkCount++;
                 } else {
                     console.warn('Received empty chunk');
                 }
@@ -1568,6 +1503,10 @@ export function useWebRTC(roomId, token) {
             
             mediaRecorder.onerror = (event) => {
                 console.error('MediaRecorder error:', event);
+            };
+            
+            mediaRecorder.onstart = () => {
+                console.log('MediaRecorder started successfully');
             };
             
             mediaRecorder.onstop = () => {
@@ -1581,7 +1520,7 @@ export function useWebRTC(roomId, token) {
                 // Check if blob is empty
                 if (blob.size === 0) {
                     console.error('Recording failed: blob is empty');
-                    alert('Inspelningen misslyckades - ingen data kunde sparas. Kontrollera att du har videor aktiva.');
+                    alert('Inspelningen misslyckades - ingen data kunde sparas. Försök igen eller kontrollera att din kamera/mikrofon fungerar.');
                     return;
                 }
                 
@@ -1591,7 +1530,8 @@ export function useWebRTC(roomId, token) {
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = url;
-                    a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                    const extension = videoTrack ? 'webm' : 'webm';
+                    a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${extension}`;
                     document.body.appendChild(a);
                     a.click();
                     
@@ -1616,10 +1556,12 @@ export function useWebRTC(roomId, token) {
             };
             
             mediaRecorderRef.current = mediaRecorder;
-            mediaRecorder.start(1000); // Collect data every second
+            
+            // Start recording - use timeslice for regular data availability
+            mediaRecorder.start(1000); // Get data every second
             setIsRecording(true);
             
-            console.log('Recording started - capturing meeting with audio from all participants');
+            console.log('Recording started - capturing local stream with mixed audio');
             console.log('MediaRecorder state:', mediaRecorder.state);
         } catch (err) {
             console.error('Error starting recording:', err);
