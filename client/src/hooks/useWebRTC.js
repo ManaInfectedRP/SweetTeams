@@ -1433,6 +1433,8 @@ export function useWebRTC(roomId, token) {
                 if (videoTracks.length > 0 && videoTracks[0].enabled) {
                     videoTrack = videoTracks[0];
                     console.log('Using local video track for recording');
+                    console.log('Video track state:', videoTrack.readyState, 'enabled:', videoTrack.enabled);
+                    console.log('Video track settings:', videoTrack.getSettings());
                 }
             }
             
@@ -1452,6 +1454,11 @@ export function useWebRTC(roomId, token) {
             }
             
             console.log('Record stream tracks:', recordStream.getTracks().length);
+            
+            // Verify tracks are actually live and producing data
+            recordStream.getTracks().forEach((track, index) => {
+                console.log(`Track ${index}:`, track.kind, 'state:', track.readyState, 'enabled:', track.enabled);
+            });
             
             recordedChunksRef.current = [];
             
@@ -1558,7 +1565,26 @@ export function useWebRTC(roomId, token) {
             mediaRecorderRef.current = mediaRecorder;
             
             // Start recording - use timeslice for regular data availability
-            mediaRecorder.start(1000); // Get data every second
+            // Start without timeslice first to ensure we get at least one chunk
+            mediaRecorder.start();
+            
+            // Request data every second
+            const dataRequestInterval = setInterval(() => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    try {
+                        mediaRecorderRef.current.requestData();
+                        console.log('Requested data chunk');
+                    } catch (err) {
+                        console.warn('Error requesting data:', err);
+                    }
+                } else {
+                    clearInterval(dataRequestInterval);
+                }
+            }, 1000);
+            
+            // Store interval reference for cleanup
+            mediaRecorderRef.current.dataRequestInterval = dataRequestInterval;
+            
             setIsRecording(true);
             
             console.log('Recording started - capturing local stream with mixed audio');
@@ -1571,6 +1597,10 @@ export function useWebRTC(roomId, token) {
     
     const stopRecording = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            // Clear the data request interval
+            if (mediaRecorderRef.current.dataRequestInterval) {
+                clearInterval(mediaRecorderRef.current.dataRequestInterval);
+            }
             mediaRecorderRef.current.stop();
             setIsRecording(false);
             console.log('Recording stopped');
