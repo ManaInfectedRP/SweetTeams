@@ -1399,10 +1399,15 @@ export function useWebRTC(roomId, token) {
             if (localStreamRef.current) {
                 const localAudioTracks = localStreamRef.current.getAudioTracks();
                 if (localAudioTracks.length > 0) {
-                    const source = audioContext.createMediaStreamSource(
-                        new MediaStream(localAudioTracks)
-                    );
-                    source.connect(dest);
+                    try {
+                        const source = audioContext.createMediaStreamSource(
+                            new MediaStream(localAudioTracks)
+                        );
+                        source.connect(dest);
+                        console.log('Local audio connected to recording');
+                    } catch (err) {
+                        console.warn('Could not add local audio:', err);
+                    }
                 }
             }
             
@@ -1411,10 +1416,15 @@ export function useWebRTC(roomId, token) {
                 if (stream && typeof stream.getAudioTracks === 'function') {
                     const audioTracks = stream.getAudioTracks();
                     if (audioTracks.length > 0) {
-                        const source = audioContext.createMediaStreamSource(
-                            new MediaStream(audioTracks)
-                        );
-                        source.connect(dest);
+                        try {
+                            const source = audioContext.createMediaStreamSource(
+                                new MediaStream(audioTracks)
+                            );
+                            source.connect(dest);
+                            console.log('Remote audio connected to recording');
+                        } catch (err) {
+                            console.warn('Could not add remote audio:', err);
+                        }
                     }
                 }
             });
@@ -1518,26 +1528,55 @@ export function useWebRTC(roomId, token) {
             
             // Capture canvas stream and combine with audio
             const canvasStream = canvas.captureStream(30); // 30 FPS
+            console.log('Canvas stream created:', canvasStream.getVideoTracks().length, 'video tracks');
+            
             const recordStream = new MediaStream([
                 ...canvasStream.getVideoTracks(),
                 ...dest.stream.getAudioTracks()
             ]);
             
+            console.log('Record stream tracks:', recordStream.getTracks().length);
+            
             recordedChunksRef.current = [];
             
+            // Try different codecs with fallback
+            let mimeType = 'video/webm;codecs=vp9,opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                console.warn('vp9 not supported, trying vp8');
+                mimeType = 'video/webm;codecs=vp8,opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    console.warn('vp8 not supported, using default');
+                    mimeType = 'video/webm';
+                }
+            }
+            
+            console.log('Using mimeType:', mimeType);
+            
             const mediaRecorder = new MediaRecorder(recordStream, {
-                mimeType: 'video/webm;codecs=vp9,opus',
+                mimeType: mimeType,
                 videoBitsPerSecond: 2500000
             });
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
+                    console.log('Recording chunk received:', event.data.size, 'bytes');
                     recordedChunksRef.current.push(event.data);
+                } else {
+                    console.warn('Received empty chunk');
                 }
             };
             
+            mediaRecorder.onerror = (event) => {
+                console.error('MediaRecorder error:', event);
+            };
+            
             mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                console.log('Recording stopped. Total chunks:', recordedChunksRef.current.length);
+                const totalSize = recordedChunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0);
+                console.log('Total size:', totalSize, 'bytes');
+                
+                const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+                console.log('Final blob size:', blob.size, 'bytes');
                 setRecordedBlob(blob);
                 setShowRecordingPreview(true);
             };
@@ -1547,6 +1586,7 @@ export function useWebRTC(roomId, token) {
             setIsRecording(true);
             
             console.log('Recording started - capturing meeting with audio from all participants');
+            console.log('MediaRecorder state:', mediaRecorder.state);
         } catch (err) {
             console.error('Error starting recording:', err);
             alert('Kunde inte starta inspelning. Se konsolen för mer information.');
