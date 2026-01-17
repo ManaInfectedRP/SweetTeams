@@ -61,7 +61,7 @@ export default function RecordingPreview({ recordedBlob, onSave, onDiscard }) {
         <div className="recording-preview-overlay">
             <div className="recording-preview-modal">
                 <div className="recording-preview-header">
-                    <h3>Förhandsgranska inspelning</h3>
+                    <h3>Inspelning klar!</h3>
                     <button 
                         className="close-button"
                         onClick={onDiscard}
@@ -72,9 +72,13 @@ export default function RecordingPreview({ recordedBlob, onSave, onDiscard }) {
                 </div>
                 
                 <div className="recording-preview-content">
+                    <div className="success-message">
+                        <p>✅ Inspelningen har sparats till dina nedladdningar!</p>
+                    </div>
+                    
                     {videoError ? (
                         <div className="video-error-message">
-                            <p>⚠️ Kan inte förhandsgranska videon, men du kan fortfarande spara den.</p>
+                            <p>⚠️ Kan inte förhandsgranska videon här, men filen är sparad och fungerar.</p>
                         </div>
                     ) : (
                         <video
@@ -100,13 +104,13 @@ export default function RecordingPreview({ recordedBlob, onSave, onDiscard }) {
                         className="btn btn-secondary"
                         onClick={onDiscard}
                     >
-                        🗑️ Kasta
+                        ✅ Stäng
                     </button>
                     <button 
                         className="btn btn-primary"
                         onClick={onSave}
                     >
-                        💾 Spara lokalt
+                        💾 Spara igen
                     </button>
                 </div>
             </div>

@@ -1577,8 +1577,42 @@ export function useWebRTC(roomId, token) {
                 
                 const blob = new Blob(recordedChunksRef.current, { type: mimeType });
                 console.log('Final blob size:', blob.size, 'bytes');
-                setRecordedBlob(blob);
-                setShowRecordingPreview(true);
+                
+                // Check if blob is empty
+                if (blob.size === 0) {
+                    console.error('Recording failed: blob is empty');
+                    alert('Inspelningen misslyckades - ingen data kunde sparas. Kontrollera att du har videor aktiva.');
+                    return;
+                }
+                
+                // Auto-download immediately to avoid blob URL issues on hosted platforms
+                try {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Show success message
+                    console.log('Recording saved successfully');
+                    
+                    // Clean up after download starts
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    
+                    // Also set blob for optional preview
+                    setRecordedBlob(blob);
+                    setShowRecordingPreview(true);
+                } catch (err) {
+                    console.error('Error downloading recording:', err);
+                    // Fallback: still set the blob so user can try manual download
+                    setRecordedBlob(blob);
+                    setShowRecordingPreview(true);
+                }
             };
             
             mediaRecorderRef.current = mediaRecorder;

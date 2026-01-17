@@ -71,6 +71,31 @@
     border: 1px solid var(--color-border);
 }
 
+.success-message {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    text-align: center;
+    margin-bottom: var(--space-md);
+}
+
+.success-message p {
+    color: #065f46;
+    font-weight: 600;
+    margin: 0;
+    font-size: var(--font-size-base);
+}
+
+[data-theme="dark"] .success-message {
+    background: #064e3b;
+    border-color: #10b981;
+}
+
+[data-theme="dark"] .success-message p {
+    color: #d1fae5;
+}
+
 .video-error-message {
     width: 100%;
     min-height: 200px;
