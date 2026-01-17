@@ -71,6 +71,25 @@
     border: 1px solid var(--color-border);
 }
 
+.video-error-message {
+    width: 100%;
+    min-height: 200px;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    text-align: center;
+}
+
+.video-error-message p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
 .recording-info {
     display: flex;
     flex-direction: column;

@@ -39,6 +39,7 @@ export async function sendMagicLinkEmail(email, name, token) {
                 email: process.env.EMAIL_FROM,
                 name: process.env.EMAIL_FROM_NAME || 'SweetTeams'
             },
+            replyTo: process.env.EMAIL_FROM,
             subject: 'Logga in på SweetTeams 🎥',
             html: `
                 <!DOCTYPE html>
@@ -153,6 +154,7 @@ export async function sendRoomInviteEmail(email, inviterName, roomName, linkCode
                 email: process.env.EMAIL_FROM,
                 name: process.env.EMAIL_FROM_NAME || 'SweetTeams'
             },
+            replyTo: process.env.EMAIL_FROM,
             subject: `${inviterName} har bjudit in dig till ett möte på SweetTeams 🎥`,
             html: `
                 <!DOCTYPE html>

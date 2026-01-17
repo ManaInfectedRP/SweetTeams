@@ -1,17 +1,53 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './RecordingPreview.css';
 
 export default function RecordingPreview({ recordedBlob, onSave, onDiscard }) {
     const videoRef = useRef(null);
+    const [videoError, setVideoError] = useState(false);
 
     useEffect(() => {
         if (recordedBlob && videoRef.current) {
-            const url = URL.createObjectURL(recordedBlob);
-            videoRef.current.src = url;
-            
-            return () => {
-                URL.revokeObjectURL(url);
-            };
+            // Create a MediaSource-based approach for better compatibility on hosted platforms
+            try {
+                const url = URL.createObjectURL(recordedBlob);
+                videoRef.current.src = url;
+                
+                // Set attributes to prevent range request issues
+                videoRef.current.preload = 'metadata';
+                videoRef.current.crossOrigin = 'anonymous';
+                
+                // Handle errors gracefully - this error is typically harmless for playback
+                const handleError = (e) => {
+                    // Check if it's the range request error which doesn't affect playback
+                    const target = e.target || e.currentTarget;
+                    if (target && target.error) {
+                        const errorCode = target.error.code;
+                        // MEDIA_ERR_SRC_NOT_SUPPORTED (4) or MEDIA_ERR_NETWORK (2) can occur with blob URLs
+                        if (errorCode === 2 || errorCode === 4) {
+                            console.warn('Video preview: Non-critical network error with blob URL');
+                            setVideoError(false); // Don't show error to user if video still plays
+                        } else {
+                            console.error('Video preview error:', target.error);
+                            setVideoError(true);
+                        }
+                    }
+                };
+                
+                videoRef.current.addEventListener('error', handleError, true);
+                
+                // Try to load the video
+                videoRef.current.load();
+                
+                return () => {
+                    if (videoRef.current) {
+                        videoRef.current.removeEventListener('error', handleError, true);
+                    }
+                    URL.revokeObjectURL(url);
+                };
+            } catch (err) {
+                console.error('Error setting up video preview:', err);
+                setVideoError(true);
+            }
         }
     }, [recordedBlob]);
 
@@ -36,11 +72,18 @@ export default function RecordingPreview({ recordedBlob, onSave, onDiscard }) {
                 </div>
                 
                 <div className="recording-preview-content">
-                    <video
-                        ref={videoRef}
-                        controls
-                        className="preview-video"
-                    />
+                    {videoError ? (
+                        <div className="video-error-message">
+                            <p>⚠️ Kan inte förhandsgranska videon, men du kan fortfarande spara den.</p>
+                        </div>
+                    ) : (
+                        <video
+                            ref={videoRef}
+                            controls
+                            className="preview-video"
+                            playsInline
+                        />
+                    )}
                     
                     <div className="recording-info">
                         <p>

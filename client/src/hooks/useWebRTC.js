@@ -1563,19 +1563,28 @@ export function useWebRTC(roomId, token) {
     
     const saveRecording = () => {
         if (recordedBlob) {
-            const url = URL.createObjectURL(recordedBlob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            // Close preview
-            setShowRecordingPreview(false);
-            setRecordedBlob(null);
+            try {
+                const url = URL.createObjectURL(recordedBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `meeting-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up after a delay to ensure download starts
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                // Close preview
+                setShowRecordingPreview(false);
+                setRecordedBlob(null);
+            } catch (err) {
+                console.error('Error saving recording:', err);
+                alert('Kunde inte spara inspelningen. Försök igen.');
+            }
         }
     };
     
