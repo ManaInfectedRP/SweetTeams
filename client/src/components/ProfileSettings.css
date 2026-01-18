@@ -231,6 +231,8 @@
     padding: 0.75rem;
     border-radius: 8px;
     transition: background 0.2s;
+    margin: 0;
+    font-weight: 400;
 }
 
 .checkbox-group label:hover {
@@ -242,11 +244,15 @@
     height: 20px;
     cursor: pointer;
     accent-color: var(--color-primary);
+    margin: 0;
+    flex-shrink: 0;
 }
 
 .checkbox-group span {
     font-size: 1rem;
     color: var(--color-text-primary);
+    flex: 1;
+    line-height: 1.5;
 }
 
 .btn {
