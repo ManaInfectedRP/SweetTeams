@@ -21,7 +21,8 @@ export default function VideoGrid({
     raisedHands = new Map(), // Map of socketId -> { order, timestamp, username }
     selectedSpeakerId,
     activeScreenSharer = null, // { socketId, username } or null
-    mySocketId = null
+    mySocketId = null,
+    isAudioMuted = false
 }) {
     const { t } = useLanguage();
     const localVideoRef = useRef(null);
@@ -257,6 +258,7 @@ export default function VideoGrid({
                                     handRaised={handRaised}
                                     selectedSpeakerId={selectedSpeakerId}
                                     profilePicture={participant?.profilePicture}
+                                    isAudioMuted={isAudioMuted}
                                 />
                             );
                         })}
@@ -331,6 +333,7 @@ export default function VideoGrid({
                                                         onSetModerator={onSetModerator}
                             selectedSpeakerId={selectedSpeakerId}
                             profilePicture={participant?.profilePicture}
+                            isAudioMuted={isAudioMuted}
                         />
                     );
                 })}
@@ -358,7 +361,7 @@ export default function VideoGrid({
     );
 }
 
-function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId, profilePicture }) {
+function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, canManage, isRemoteHost, mediaState, isSpeaking, handRaised, showMenu, onMenuClick, onAdminAction, onSetModerator, selectedSpeakerId, profilePicture, isAudioMuted = false }) {
     const { t } = useLanguage();
     const videoRef = useRef(null);
 
@@ -456,6 +459,7 @@ function RemoteVideo({ remote, socketId, userId, role = 'participant', isHost, c
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted={isAudioMuted}
                 data-local="false"
                 className={isVideoEnabled ? '' : 'hidden'}
             />
@@ -510,7 +514,7 @@ function ScreenShareVideo({ stream, username, label }) {
 }
 
 // RemoteThumbnail component for participant thumbnails during screen share
-function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId, profilePicture }) {
+function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaState, isSpeaking, handRaised, selectedSpeakerId, profilePicture, isAudioMuted = false }) {
     const { t } = useLanguage();
     const videoRef = useRef(null);
 
@@ -552,8 +556,7 @@ function RemoteThumbnail({ remote, socketId, userId, role, isRemoteHost, mediaSt
             <video
                 ref={videoRef}
                 autoPlay
-                playsInline
-                data-local="false"
+                playsInline                muted={isAudioMuted}                data-local="false"
                 className={isVideoEnabled ? '' : 'hidden'}
             />
 

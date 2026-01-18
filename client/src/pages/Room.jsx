@@ -20,6 +20,7 @@ export default function Room() {
     const [loading, setLoading] = useState(true);
     const [showChat, setShowChat] = useState(true);
     const [showInviteModal, setShowInviteModal] = useState(false);
+    const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(
         document.documentElement.getAttribute('data-theme') === 'dark'
     );
@@ -181,6 +182,10 @@ export default function Room() {
         setIsDarkMode(!isDarkMode);
     };
 
+    const toggleAudio = () => {
+        setIsAudioMuted(prev => !prev);
+    };
+
     const handleLeave = () => {
         // Check if user is a guest
         const isGuest = localStorage.getItem('isGuest') === 'true';
@@ -267,13 +272,16 @@ export default function Room() {
                         selectedSpeakerId={selectedSpeakerId}
                         activeScreenSharer={activeScreenSharer}
                         mySocketId={participants.find(p => p.userId === user?.id)?.socketId}
+                        isAudioMuted={isAudioMuted}
                     />
                     <Controls
                         isCameraOn={isCameraOn}
                         isMicOn={isMicOn}
+                        isAudioMuted={isAudioMuted}
                         isScreenSharing={isScreenSharing}
                         onToggleCamera={toggleCamera}
                         onToggleMic={toggleMic}
+                        onToggleAudio={toggleAudio}
                         onToggleScreenShare={toggleScreenShare}
                         onSwitchCamera={switchCamera}
                         isHandRaised={isHandRaised}

@@ -5,9 +5,11 @@ import './Controls.css';
 export default function Controls({
     isCameraOn,
     isMicOn,
+    isAudioMuted,
     isScreenSharing,
     onToggleCamera,
     onToggleMic,
+    onToggleAudio,
     onToggleScreenShare,
     onSwitchCamera,
     onLeave,
@@ -61,6 +63,14 @@ export default function Controls({
                     title={isMicOn ? t('room.micOff') : t('room.micOn')}
                 >
                     {isMicOn ? '🎤' : '🔇'}
+                </button>
+
+                <button
+                    onClick={onToggleAudio}
+                    className={`btn-control ${isAudioMuted ? 'btn-control-off' : ''}`}
+                    title={isAudioMuted ? t('room.unmuteAudio', 'Unmute audio') : t('room.muteAudio', 'Mute audio')}
+                >
+                    {isAudioMuted ? '🔇' : '🔊'}
                 </button>
 
                 <button
