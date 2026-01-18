@@ -414,7 +414,7 @@
 /* Table Styles */
 .table-container {
     overflow-x: auto;
-    background: white;
+    background: var(--color-surface);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -433,7 +433,8 @@
 .admin-table td {
     padding: 1rem;
     text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
 }
 
 .admin-table th {
@@ -474,8 +475,9 @@
 }
 
 .badge-user {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    background: var(--color-background);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
 }
 
 .action-buttons {
@@ -507,7 +509,7 @@
 }
 
 .info-card {
-    background: white;
+    background: var(--color-surface);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -540,7 +542,7 @@
 }
 
 .maintenance-section {
-    background: white;
+    background: var(--color-surface);
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
