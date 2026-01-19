@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { config } from '../config';
 import ProfileSettings from '../components/ProfileSettings';
+import SetNameModal from '../components/SetNameModal';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -13,6 +14,7 @@ export default function Dashboard() {
     const [roomName, setRoomName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showSetNameModal, setShowSetNameModal] = useState(false);
     const [error, setError] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const { user, token, logout } = useAuth();
@@ -20,8 +22,12 @@ export default function Dashboard() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Check if user needs to set their name
+        if (user && !user.username) {
+            setShowSetNameModal(true);
+        }
         fetchRooms();
-    }, []);
+    }, [user]);
 
     const fetchRooms = async () => {
         try {
@@ -277,6 +283,13 @@ export default function Dashboard() {
 
             {showSettings && (
                 <ProfileSettings onClose={() => setShowSettings(false)} />
+            )}
+
+            {showSetNameModal && (
+                <SetNameModal 
+                    onClose={() => {}} 
+                    onNameSet={() => setShowSetNameModal(false)} 
+                />
             )}
         </div>
     );

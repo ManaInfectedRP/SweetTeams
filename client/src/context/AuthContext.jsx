@@ -138,11 +138,11 @@ export function AuthProvider({ children }) {
         return data;
     };
 
-    const requestMagicLink = async (email, name) => {
+    const requestMagicLink = async (email) => {
         const response = await fetch(`${config.apiUrl}/api/auth/request-magic-link`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name })
+            body: JSON.stringify({ email })
         });
 
         if (!response.ok) {

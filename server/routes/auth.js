@@ -71,11 +71,11 @@ export function authenticateToken(req, res, next) {
 // Request magic link - replaces both login and register
 router.post('/request-magic-link', async (req, res) => {
     try {
-        const { email, name } = req.body;
+        const { email } = req.body;
 
         // Validation
-        if (!email || !name) {
-            return res.status(400).json({ error: 'E-post och namn krävs' });
+        if (!email) {
+            return res.status(400).json({ error: 'E-post krävs' });
         }
 
         // Validate email format
@@ -90,11 +90,11 @@ router.post('/request-magic-link', async (req, res) => {
         // Set expiration to 15 minutes from now
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         
-        // Create magic link
-        await createMagicLink(email, name, token, expiresAt);
+        // Create magic link without name
+        await createMagicLink(email, null, token, expiresAt);
         
         // Send email
-        await sendMagicLinkEmail(email, name, token);
+        await sendMagicLinkEmail(email, null, token);
         
         // Clean up old links
         cleanupExpiredMagicLinks().catch(err => 
@@ -146,21 +146,15 @@ router.get('/verify-magic-link', async (req, res) => {
         let user = await findUserByEmail(magicLink.email);
         
         if (!user) {
-            // Create new user
-            const result = await createUser(magicLink.name, magicLink.email);
+            // Create new user without username (will be set later on dashboard)
+            const result = await createUser(null, magicLink.email);
             user = {
                 id: result.lastID,
-                username: magicLink.name,
+                username: null,
                 email: magicLink.email
             };
-        } else {
-            // Update username if it has changed
-            if (user.username !== magicLink.name) {
-                const { updateUserProfile } = await import('../database.js');
-                await updateUserProfile(user.id, { username: magicLink.name });
-                user.username = magicLink.name;
-            }
         }
+        // Note: We don't update username here anymore - users set it on dashboard
 
         // Generate JWT token
         const jwtToken = jwt.sign(

@@ -66,6 +66,15 @@ export const translations = {
       logout: "Logout",
       copyLink: "Copy link",
       loadingRooms: "Loading rooms...",
+      welcomeTitle: "Welcome to SweetTeams!",
+      setNamePrompt: "Please set your name to continue",
+      yourName: "Your Name",
+      namePlaceholder: "Enter your name",
+      nameRequired: "Name is required",
+      nameTooShort: "Name must be at least 2 characters",
+      updateFailed: "Failed to update name",
+      saving: "Saving...",
+      continue: "Continue",
     },
     
     // Room
@@ -497,6 +506,15 @@ export const translations = {
       logout: "Logga ut",
       copyLink: "Kopiera länk",
       loadingRooms: "Laddar rum...",
+      welcomeTitle: "Välkommen till SweetTeams!",
+      setNamePrompt: "Vänligen ange ditt namn för att fortsätta",
+      yourName: "Ditt namn",
+      namePlaceholder: "Ange ditt namn",
+      nameRequired: "Namn krävs",
+      nameTooShort: "Namnet måste vara minst 2 tecken",
+      updateFailed: "Kunde inte uppdatera namn",
+      saving: "Sparar...",
+      continue: "Fortsätt",
     },
     
     // Room

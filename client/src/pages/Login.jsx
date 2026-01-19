@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import './Auth.css';
@@ -7,12 +6,10 @@ import './Auth.css';
 export default function Login() {
     const { t } = useLanguage();
     const [email, setEmail] = useState('');
-    const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const { requestMagicLink } = useAuth();
-    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -21,10 +18,9 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const result = await requestMagicLink(email, name);
+            const result = await requestMagicLink(email);
             setSuccess(result.message || t('auth.magicLinkSent'));
             setEmail('');
-            setName('');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -57,22 +53,6 @@ export default function Login() {
                         )}
 
                         <div className="form-group">
-                            <label htmlFor="name" className="form-label">
-                                {t('auth.name')}
-                            </label>
-                            <input
-                                id="name"
-                                type="text"
-                                className="form-input"
-                                placeholder={t('auth.namePlaceholder')}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="form-group">
                             <label htmlFor="email" className="form-label">
                                 {t('auth.email')}
                             </label>
@@ -84,6 +64,7 @@ export default function Login() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                autoFocus
                             />
                         </div>
 

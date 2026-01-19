@@ -7,6 +7,7 @@ config();
  */
 export async function sendMagicLinkEmail(email, name, token) {
     const magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/verify?token=${token}`;
+    const displayName = name || 'there';
     
     // For development - log to console
     if (process.env.NODE_ENV !== 'production') {
@@ -14,7 +15,6 @@ export async function sendMagicLinkEmail(email, name, token) {
         console.log('🔐 MAGIC LINK EMAIL');
         console.log('==============================================');
         console.log(`Till: ${email}`);
-        console.log(`Namn: ${name}`);
         console.log(`Magic Link: ${magicLink}`);
         console.log('==============================================\n');
         return { success: true, dev: true };
@@ -67,7 +67,7 @@ export async function sendMagicLinkEmail(email, name, token) {
                             <h1>SweetTeams</h1>
                         </div>
                         <div class="content">
-                            <h2>Hej ${name}! 👋</h2>
+                            <h2>Hej! 👋</h2>
                             <p>Du har begärt en inloggningslänk till ditt SweetTeams-konto. Klicka på knappen nedan för att logga in:</p>
                             <div style="text-align: center;">
                                 <a href="${magicLink}" class="button">Logga in på SweetTeams</a>
@@ -89,7 +89,7 @@ export async function sendMagicLinkEmail(email, name, token) {
                 </body>
                 </html>
             `,
-            text: `Hej ${name}!\n\nKlicka på länken nedan för att logga in på SweetTeams:\n\n${magicLink}\n\nDenna länk är giltig i 15 minuter.\n\nOm du inte begärde denna inloggning kan du ignorera detta meddelande.`
+            text: `Hej!\n\nKlicka på länken nedan för att logga in på SweetTeams:\n\n${magicLink}\n\nDenna länk är giltig i 15 minuter.\n\nOm du inte begärde denna inloggning kan du ignorera detta meddelande.`
         };
         
         await sgMail.default.send(msg);
