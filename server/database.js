@@ -187,8 +187,13 @@ async function initializePostgresTables() {
             `);
             console.log('✅ Made username column nullable for magic link authentication');
         } catch (err) {
-            // Column might already be nullable, ignore error
-            console.log('username nullable migration check:', err.message);
+            // If error is about column not having a NOT NULL constraint, it's already nullable
+            // Other errors (permissions, table doesn't exist) are silently ignored on startup
+            if (err.message && err.message.includes('constraint')) {
+                console.log('ℹ️ Username column is already nullable');
+            } else {
+                console.log('⚠️ Username nullable migration check:', err.message);
+            }
         }
 
         console.log('✅ PostgreSQL tables initialized');
