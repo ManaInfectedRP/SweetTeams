@@ -81,7 +81,7 @@ async function initializePostgresTables() {
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 profile_picture TEXT,
@@ -180,6 +180,17 @@ async function initializePostgresTables() {
             console.log('is_admin column check:', err.message);
         }
 
+        // Make username nullable for magic link authentication (migration)
+        try {
+            await client.query(`
+                ALTER TABLE users ALTER COLUMN username DROP NOT NULL
+            `);
+            console.log('✅ Made username column nullable for magic link authentication');
+        } catch (err) {
+            // Column might already be nullable, ignore error
+            console.log('username nullable migration check:', err.message);
+        }
+
         console.log('✅ PostgreSQL tables initialized');
     } catch (err) {
         console.error('❌ Error initializing PostgreSQL tables:', err);
@@ -192,7 +203,7 @@ function initializeSqliteTables() {
         db.run(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 profile_picture TEXT,
