@@ -43,3 +43,6 @@ Thumbs.db
 .cache/
 temp/
 tmp/
+server.pid
+server.log
+*.db
