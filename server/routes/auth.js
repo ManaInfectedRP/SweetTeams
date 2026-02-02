@@ -91,10 +91,10 @@ router.post('/request-magic-link', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         
         // Create magic link without name
-        await createMagicLink(email, null, token, expiresAt);
+        await createMagicLink(email, '', token, expiresAt);
         
         // Send email
-        await sendMagicLinkEmail(email, null, token);
+        await sendMagicLinkEmail(email, '', token);
         
         // Clean up old links
         cleanupExpiredMagicLinks().catch(err => 
