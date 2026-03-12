@@ -153,6 +153,25 @@ export function AuthProvider({ children }) {
         return await response.json();
     };
 
+    const loginWithEmail = async (email) => {
+        const response = await fetch(`${config.apiUrl}/api/auth/email-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Login failed');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        return data;
+    };
+
     const verifyMagicLink = async (token) => {
         const response = await fetch(`${config.apiUrl}/api/auth/verify-magic-link?token=${token}`);
 
@@ -189,6 +208,7 @@ export function AuthProvider({ children }) {
             login,
             register,
             requestMagicLink, 
+            loginWithEmail,
             verifyMagicLink, 
             logout, 
             updateUser,

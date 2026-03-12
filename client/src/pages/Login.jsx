@@ -1,26 +1,26 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import './Auth.css';
 
 export default function Login() {
     const { t } = useLanguage();
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
-    const { requestMagicLink } = useAuth();
+    const { loginWithEmail } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setSuccess('');
         setLoading(true);
 
         try {
-            const result = await requestMagicLink(email);
-            setSuccess(result.message || t('auth.magicLinkSent'));
-            setEmail('');
+            await loginWithEmail(email);
+            // Redirect to dashboard on successful login
+            navigate('/dashboard');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -36,19 +36,13 @@ export default function Login() {
                     <div className="auth-header">
                         <div className="auth-logo">🎥</div>
                         <h1>{t('auth.welcomeToSweetTeams')}</h1>
-                        <p className="text-secondary">{t('auth.enterEmailForLink')}</p>
+                        <p className="text-secondary">{t('auth.enterEmailToLogin')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         {error && (
                             <div className="alert alert-error animate-slide-in">
                                 {error}
-                            </div>
-                        )}
-
-                        {success && (
-                            <div className="alert alert-success animate-slide-in">
-                                {success}
                             </div>
                         )}
 
@@ -74,7 +68,7 @@ export default function Login() {
                             disabled={loading}
                             style={{ width: '100%' }}
                         >
-                            {loading ? t('auth.sending') : t('auth.sendLoginLink')}
+                            {loading ? t('auth.loggingIn') : t('auth.login')}
                         </button>
                     </form>
 

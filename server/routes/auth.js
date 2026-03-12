@@ -68,7 +68,63 @@ export function authenticateToken(req, res, next) {
     });
 }
 
-// Request magic link - replaces both login and register
+// Direct email login - no magic link required
+router.post('/email-login', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Validation
+        if (!email) {
+            return res.status(400).json({ error: 'E-post krävs' });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Ogiltig e-postadress' });
+        }
+
+        // Check if user exists
+        let user = await findUserByEmail(email);
+        
+        if (!user) {
+            // Create new user without username (will be set later on dashboard)
+            const result = await createUser(null, email);
+            user = {
+                id: result.lastID,
+                username: null,
+                email: email,
+                is_admin: 0
+            };
+        }
+
+        // Generate JWT token
+        const jwtToken = jwt.sign(
+            { id: user.id, username: user.username, email: user.email, isAdmin: user.is_admin || 0 },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            message: 'Inloggning lyckades',
+            token: jwtToken,
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                email: user.email,
+                isAdmin: user.is_admin || 0
+            }
+        });
+    } catch (error) {
+        console.error('Email login error:', error);
+        res.status(500).json({ 
+            error: error.message || 'Inloggning misslyckades',
+            details: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
+    }
+});
+
+// Request magic link - replaces both login and register (DEPRECATED - use /email-login instead)
 router.post('/request-magic-link', async (req, res) => {
     try {
         const { email } = req.body;
