@@ -6,6 +6,7 @@ export const translations = {
     // Auth
     auth: {
       login: "Log In",
+      loggingIn: "Logging in...",
       email: "Email",
       password: "Password",
       loginButton: "Log In",
@@ -34,11 +35,13 @@ export const translations = {
       welcomeMessage: "Enter your email and we'll send a login link",
       welcomeTitle: "Welcome to SweetTeams",
       enterEmailForLink: "Enter your email to receive a magic login link",
+      enterEmailToLogin: "Enter your email to log in automatically",
         magicLinkSent: "Magic link sent to your email!",
         verifyFailed: "Verification failed",
         somethingWrong: "Something went wrong",
         welcome: "Welcome!",
         sendLoginLink: "Send Login Link",
+        sending: "Sending...",
     },
     
     // Dashboard
@@ -445,6 +448,7 @@ export const translations = {
     // Auth
     auth: {
       login: "Logga in",
+      loggingIn: "Loggar in...",
       email: "E-post",
       password: "Lösenord",
       loginButton: "Logga in",
@@ -473,11 +477,13 @@ export const translations = {
       welcomeMessage: "Ange din e-post så skickar vi en inloggningslänk",
       welcomeTitle: "Välkommen till SweetTeams",
         enterEmailForLink: "Ange din e-post för att få en magisk inloggningslänk",
+        enterEmailToLogin: "Ange din e-post för att logga in automatiskt",
         magicLinkSent: "Magisk länk skickad till din e-post!",
         verifyFailed: "Verifiering misslyckades",
         somethingWrong: "Något gick fel",
         welcome: "Välkommen!",
         sendLoginLink: "Skicka inloggningslänk",
+        sending: "Skickar...",
 
     },
     
